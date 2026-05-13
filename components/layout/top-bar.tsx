@@ -1,11 +1,15 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Bell, Sun, Moon, Menu } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Bell, Sun, Moon, Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { notifications, teamMembers } from "@/lib/seed-data";
+import { cn } from "@/lib/utils";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,39 +17,36 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Badge } from '@/components/ui/badge'
-import { notifications, teamMembers } from '@/lib/seed-data'
-import { cn } from '@/lib/utils'
+} from "@/components/ui/dropdown-menu";
 
 interface TopBarProps {
-  title: string
-  onMenuClick?: () => void
-  showMenuButton?: boolean
+  title: string;
+  onMenuClick?: () => void;
+  showMenuButton?: boolean;
 }
 
 export function TopBar({ title, onMenuClick, showMenuButton }: TopBarProps) {
-  const [isDark, setIsDark] = useState(true)
-  const currentUser = teamMembers[0]
-  const unreadNotifications = notifications.filter((n) => !n.read)
+  const [isDark, setIsDark] = useState(true);
+  const currentUser = teamMembers[0];
+  const unreadNotifications = notifications.filter((n) => !n.read);
 
   const toggleTheme = () => {
-    setIsDark(!isDark)
-    document.documentElement.classList.toggle('dark')
-  }
+    setIsDark(!isDark);
+    document.documentElement.classList.toggle("dark");
+  };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'success':
-        return 'bg-success'
-      case 'warning':
-        return 'bg-warning'
-      case 'error':
-        return 'bg-danger'
+      case "success":
+        return "bg-success";
+      case "warning":
+        return "bg-warning";
+      case "error":
+        return "bg-danger";
       default:
-        return 'bg-primary'
+        return "bg-primary";
     }
-  }
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/80 px-6 backdrop-blur-sm">
@@ -137,15 +138,15 @@ export function TopBar({ title, onMenuClick, showMenuButton }: TopBarProps) {
               <DropdownMenuItem
                 key={notification.id}
                 className={cn(
-                  'flex flex-col items-start gap-1 p-3',
-                  !notification.read && 'bg-primary/5'
+                  "flex flex-col items-start gap-1 p-3",
+                  !notification.read && "bg-primary/5",
                 )}
               >
                 <div className="flex w-full items-start gap-2">
                   <div
                     className={cn(
-                      'mt-1 h-2 w-2 shrink-0 rounded-full',
-                      getNotificationIcon(notification.type)
+                      "mt-1 h-2 w-2 shrink-0 rounded-full",
+                      getNotificationIcon(notification.type),
                     )}
                   />
                   <div className="flex-1">
@@ -154,12 +155,15 @@ export function TopBar({ title, onMenuClick, showMenuButton }: TopBarProps) {
                       {notification.message}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {new Date(notification.timestamp).toLocaleDateString('pt-BR', {
-                        day: '2-digit',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {new Date(notification.timestamp).toLocaleDateString(
+                        "pt-BR",
+                        {
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        },
+                      )}
                     </p>
                   </div>
                 </div>
@@ -180,13 +184,13 @@ export function TopBar({ title, onMenuClick, showMenuButton }: TopBarProps) {
                 <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
                 <AvatarFallback className="bg-primary/20 text-xs text-primary">
                   {currentUser.name
-                    .split(' ')
+                    .split(" ")
                     .map((n) => n[0])
-                    .join('')}
+                    .join("")}
                 </AvatarFallback>
               </Avatar>
               <span className="hidden text-sm font-medium md:inline-block">
-                {currentUser.name.split(' ')[0]}
+                {currentUser.name.split(" ")[0]}
               </span>
             </Button>
           </DropdownMenuTrigger>
@@ -203,10 +207,12 @@ export function TopBar({ title, onMenuClick, showMenuButton }: TopBarProps) {
             <DropdownMenuItem>Meu Perfil</DropdownMenuItem>
             <DropdownMenuItem>Configurações</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">Sair</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive">
+              Sair
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
     </header>
-  )
+  );
 }

@@ -1,19 +1,19 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Sidebar } from './sidebar'
-import { TopBar } from './top-bar'
-import { cn } from '@/lib/utils'
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sidebar } from "./sidebar";
+import { TopBar } from "./top-bar";
+import { cn } from "@/lib/utils";
 
 interface AppShellProps {
-  children: React.ReactNode
-  title: string
+  children: React.ReactNode;
+  title: string;
 }
 
 export function AppShell({ children, title }: AppShellProps) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
@@ -40,10 +40,13 @@ export function AppShell({ children, title }: AppShellProps) {
               initial={{ x: -240 }}
               animate={{ x: 0 }}
               exit={{ x: -240 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed left-0 top-0 z-50 md:hidden"
             >
-              <Sidebar collapsed={false} onToggle={() => setMobileMenuOpen(false)} />
+              <Sidebar
+                collapsed={false}
+                onToggle={() => setMobileMenuOpen(false)}
+              />
             </motion.div>
           </>
         )}
@@ -54,17 +57,17 @@ export function AppShell({ children, title }: AppShellProps) {
         animate={{
           marginLeft: sidebarCollapsed ? 64 : 240,
         }}
-        transition={{ duration: 0.2, ease: 'easeInOut' }}
-        className={cn('flex min-h-screen flex-col', 'md:ml-60')}
+        transition={{ duration: 0.2, ease: "easeInOut" }}
+        className={cn("flex min-h-screen flex-col", "md:ml-60")}
         style={{ marginLeft: 0 }}
       >
         <div
           className={cn(
-            'hidden md:block',
-            sidebarCollapsed ? 'md:ml-16' : 'md:ml-60'
+            "hidden md:block",
+            sidebarCollapsed ? "md:ml-16" : "md:ml-60",
           )}
           style={{
-            position: 'fixed',
+            position: "fixed",
             top: 0,
             right: 0,
             left: sidebarCollapsed ? 64 : 240,
@@ -82,8 +85,8 @@ export function AppShell({ children, title }: AppShellProps) {
         </div>
         <div
           className={cn(
-            'flex-1 p-6 pt-6 md:pt-22',
-            sidebarCollapsed ? 'md:ml-16' : 'md:ml-60'
+            "flex-1 p-6 pt-6 md:pt-22",
+            sidebarCollapsed ? "md:ml-16" : "md:ml-60",
           )}
         >
           <motion.div
@@ -96,5 +99,5 @@ export function AppShell({ children, title }: AppShellProps) {
         </div>
       </motion.main>
     </div>
-  )
+  );
 }

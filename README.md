@@ -10,13 +10,15 @@ This repository is linked to a [v0](https://v0.app) project. You can continue de
 
 ## Getting Started
 
-First, run the development server:
+Instale as dependências com pnpm:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+```
+
+Em seguida, rode o servidor de desenvolvimento:
+
+```bash
 pnpm dev
 ```
 

@@ -1,0 +1,583 @@
+"use client";
+
+import { motion } from "framer-motion";
+import { AppShell } from "@/components/layout";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { teamMembers } from "@/lib/seed-data";
+import { cn } from "@/lib/utils";
+
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+
+import {
+  Building2,
+  Users,
+  Link as LinkIcon,
+  Bell,
+  CreditCard,
+  Upload,
+  Plus,
+  ExternalLink,
+  Shield,
+  Smartphone,
+  Globe,
+} from "lucide-react";
+
+export default function ConfiguracoesPage() {
+  return (
+    <AppShell title="Configurações">
+      <div className="max-w-5xl">
+        <Tabs defaultValue="agencia" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5 h-12 bg-secondary/30 p-1">
+            <TabsTrigger value="agencia" className="gap-2 text-xs sm:text-sm">
+              <Building2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Agência</span>
+            </TabsTrigger>
+            <TabsTrigger value="usuarios" className="gap-2 text-xs sm:text-sm">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Usuários</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="integracoes"
+              className="gap-2 text-xs sm:text-sm"
+            >
+              <LinkIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Integrações</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="notificacoes"
+              className="gap-2 text-xs sm:text-sm"
+            >
+              <Bell className="h-4 w-4" />
+              <span className="hidden sm:inline">Notificações</span>
+            </TabsTrigger>
+            <TabsTrigger value="plano" className="gap-2 text-xs sm:text-sm">
+              <CreditCard className="h-4 w-4" />
+              <span className="hidden sm:inline">Plano</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Agência Tab */}
+          <TabsContent value="agencia">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle>Perfil da Agência</CardTitle>
+                  <CardDescription>
+                    Informações básicas e identidade visual
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+                    <div className="relative">
+                      <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-primary/10 border-2 border-dashed border-primary/30">
+                        <Building2 className="h-10 w-10 text-primary/40" />
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full shadow-lg"
+                      >
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="font-medium">Logo da Agência</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Recomendado: 512x512px. Formatos: PNG, JPG ou SVG.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="agency-name">Nome da Agência</Label>
+                      <Input id="agency-name" defaultValue="Connex Digital" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="agency-cnpj">CNPJ</Label>
+                      <Input
+                        id="agency-cnpj"
+                        defaultValue="00.000.000/0001-00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="agency-email">E-mail de Contato</Label>
+                      <Input
+                        id="agency-email"
+                        defaultValue="contato@connex.com.br"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="agency-phone">Telefone</Label>
+                      <Input id="agency-phone" defaultValue="(11) 99999-9999" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="agency-address">Endereço</Label>
+                    <Input
+                      id="agency-address"
+                      defaultValue="Av. Paulista, 1000 - São Paulo, SP"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+                    <Button variant="outline">Cancelar</Button>
+                    <Button className="bg-primary text-primary-foreground">
+                      Salvar Alterações
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle>Personalização</CardTitle>
+                  <CardDescription>
+                    Cores e tema do seu workspace
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Cor Primária</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Cor principal usada em botões e links
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-primary border border-border" />
+                      <span className="text-sm font-mono">#5B5FE8</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Modo Escuro</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Alternar entre tema claro e escuro
+                      </p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+
+          {/* Usuários Tab */}
+          <TabsContent value="usuarios">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">Membros do Time</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Gerencie quem tem acesso ao CRM
+                  </p>
+                </div>
+                <Button className="gap-2 bg-primary text-primary-foreground">
+                  <Plus className="h-4 w-4" />
+                  Convidar Membro
+                </Button>
+              </div>
+
+              <Card className="bg-card border-border overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border bg-secondary/30">
+                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Usuário
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          E-mail
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Cargo
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          Ações
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/50">
+                      {teamMembers.map((member) => (
+                        <tr
+                          key={member.id}
+                          className="hover:bg-secondary/20 transition-colors"
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage
+                                  src={member.avatar}
+                                  alt={member.name}
+                                />
+                                <AvatarFallback className="bg-primary/10 text-xs text-primary">
+                                  {member.name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm font-medium text-foreground">
+                                {member.name}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm text-muted-foreground">
+                              {member.email}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge
+                              variant="secondary"
+                              className={cn(
+                                "text-[10px] px-2 py-0",
+                                member.role === "Admin"
+                                  ? "bg-primary/10 text-primary border-primary/20"
+                                  : member.role === "Gestor"
+                                    ? "bg-chart-2/10 text-chart-2 border-chart-2/20"
+                                    : "bg-muted text-muted-foreground",
+                              )}
+                            >
+                              {member.role}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs"
+                            >
+                              Editar
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </motion.div>
+          </TabsContent>
+
+          {/* Integrações Tab */}
+          <TabsContent value="integracoes">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <IntegrationCard
+                  name="Meta Business"
+                  description="Conecte suas contas de Facebook e Instagram Ads"
+                  icon="/placeholder.svg"
+                  connected={true}
+                />
+                <IntegrationCard
+                  name="Google Ads"
+                  description="Importe métricas e gerencie campanhas de busca"
+                  icon="/placeholder.svg"
+                  connected={true}
+                />
+                <IntegrationCard
+                  name="RD Station"
+                  description="Sincronize leads e eventos de conversão"
+                  icon="/placeholder.svg"
+                  connected={false}
+                />
+                <IntegrationCard
+                  name="WhatsApp API"
+                  description="Envie notificações automáticas para seus clientes"
+                  icon="/placeholder.svg"
+                  connected={false}
+                />
+                <IntegrationCard
+                  name="Zapier"
+                  description="Conecte o Connex com mais de 5.000 apps"
+                  icon="/placeholder.svg"
+                  connected={true}
+                />
+                <IntegrationCard
+                  name="LinkedIn Ads"
+                  description="Gerencie campanhas B2B e captação de leads"
+                  icon="/placeholder.svg"
+                  connected={false}
+                />
+              </div>
+            </motion.div>
+          </TabsContent>
+
+          {/* Notificações Tab */}
+          <TabsContent value="notificacoes">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle>Preferências de Notificação</CardTitle>
+                  <CardDescription>
+                    Escolha como e quando você quer ser notificado
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
+                      E-mail
+                    </h3>
+                    <NotificationToggle
+                      title="Novos Leads"
+                      description="Receba um e-mail sempre que um novo lead for capturado"
+                      defaultChecked={true}
+                    />
+                    <NotificationToggle
+                      title="Relatórios Semanais"
+                      description="Resumo de performance da agência toda segunda-feira"
+                      defaultChecked={true}
+                    />
+                    <NotificationToggle
+                      title="Alertas de Clientes em Risco"
+                      description="Notificações urgentes sobre clientes sem atividade"
+                      defaultChecked={true}
+                    />
+                  </div>
+
+                  <div className="pt-6 border-t border-border space-y-4">
+                    <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
+                      Sistema (Push)
+                    </h3>
+                    <NotificationToggle
+                      title="Atividades do Time"
+                      description="Acompanhe as ações dos membros da sua equipe"
+                      defaultChecked={false}
+                    />
+                    <NotificationToggle
+                      title="Mensagens de Clientes"
+                      description="Novas interações via chat ou integrações"
+                      defaultChecked={true}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+
+          {/* Plano Tab */}
+          <TabsContent value="plano">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <Card className="bg-card border-border overflow-hidden">
+                <div className="bg-primary/5 p-8 border-b border-border">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-1">
+                      <Badge className="bg-primary text-primary-foreground">
+                        Plano Atual
+                      </Badge>
+                      <h2 className="text-2xl font-bold">Connex Pro</h2>
+                      <p className="text-muted-foreground">
+                        Sua assinatura renova em 15 de Junho, 2025
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-3xl font-bold">
+                        R$ 499
+                        <span className="text-sm font-normal text-muted-foreground">
+                          /mês
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <CardContent className="p-8 space-y-8">
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Users className="h-4 w-4 text-primary" />
+                        Usuários
+                      </div>
+                      <p className="text-2xl font-bold">12 / 20</p>
+                      <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                        <div className="h-full bg-primary w-[60%]" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Building2 className="h-4 w-4 text-primary" />
+                        Clientes
+                      </div>
+                      <p className="text-2xl font-bold">45 / 100</p>
+                      <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                        <div className="h-full bg-primary w-[45%]" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Smartphone className="h-4 w-4 text-primary" />
+                        Integrações
+                      </div>
+                      <p className="text-2xl font-bold">8 / Ilimitado</p>
+                      <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                        <div className="h-full bg-primary w-[30%]" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pt-6 border-t border-border">
+                    <div className="flex items-center gap-4">
+                      <Button variant="outline">Gerenciar Faturas</Button>
+                      <Button variant="outline">Alterar Cartão</Button>
+                    </div>
+                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+                      Fazer Upgrade para Enterprise
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <Card className="bg-card border-border">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Shield className="h-4 w-4 text-success" />
+                      Segurança
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Seus dados estão protegidos com criptografia de ponta a
+                      ponta e backups diários.
+                    </p>
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto text-primary gap-1"
+                    >
+                      Ver política de privacidade{" "}
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </CardContent>
+                </Card>
+                <Card className="bg-card border-border">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Globe className="h-4 w-4 text-primary" />
+                      Domínio Customizado
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Acesse o CRM através do seu próprio subdomínio (ex:
+                      crm.suaagencia.com.br).
+                    </p>
+                    <Button variant="outline" size="sm">
+                      Configurar Domínio
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </motion.div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </AppShell>
+  );
+}
+
+function IntegrationCard({
+  name,
+  description,
+  icon,
+  connected,
+}: {
+  name: string;
+  description: string;
+  icon: string;
+  connected: boolean;
+}) {
+  return (
+    <Card className="bg-card border-border hover:border-primary/30 transition-all group">
+      <CardContent className="p-5 space-y-4">
+        <div className="flex items-start justify-between">
+          <div className="h-12 w-12 rounded-xl bg-secondary/50 flex items-center justify-center">
+            <div className="h-8 w-8 rounded bg-muted animate-pulse" />
+          </div>
+          <Badge
+            variant={connected ? "default" : "outline"}
+            className={cn(
+              "text-[10px] px-1.5",
+              connected
+                ? "bg-success/10 text-success border-success/20 hover:bg-success/20"
+                : "text-muted-foreground",
+            )}
+          >
+            {connected ? "Conectado" : "Disponível"}
+          </Badge>
+        </div>
+        <div className="space-y-1">
+          <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+            {name}
+          </h3>
+          <p className="text-xs text-muted-foreground line-clamp-2">
+            {description}
+          </p>
+        </div>
+        <Button
+          variant={connected ? "outline" : "default"}
+          size="sm"
+          className={cn(
+            "w-full text-xs h-8",
+            !connected && "bg-primary text-primary-foreground",
+          )}
+        >
+          {connected ? "Configurar" : "Conectar"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function NotificationToggle({
+  title,
+  description,
+  defaultChecked,
+}: {
+  title: string;
+  description: string;
+  defaultChecked?: boolean;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="space-y-0.5">
+        <Label className="text-sm font-medium">{title}</Label>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <Switch defaultChecked={defaultChecked} />
+    </div>
+  );
+}

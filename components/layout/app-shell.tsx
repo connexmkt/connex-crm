@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sidebar } from "./sidebar";
 import { TopBar } from "./top-bar";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ interface AppShellProps {
 export function AppShell({ children, title }: AppShellProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   return (
     <div className="min-h-screen bg-background">
@@ -55,27 +57,26 @@ export function AppShell({ children, title }: AppShellProps) {
       {/* Main content */}
       <motion.main
         animate={{
-          marginLeft: sidebarCollapsed ? 64 : 240,
+          marginLeft: isMobile ? 0 : sidebarCollapsed ? 64 : 240,
         }}
         transition={{ duration: 0.2, ease: "easeInOut" }}
-        className={cn("flex min-h-screen flex-col", "md:ml-60")}
-        style={{ marginLeft: 0 }}
+        className="flex min-h-screen flex-col"
       >
-        <div
-          className={cn(
-            "hidden md:block",
-            sidebarCollapsed ? "md:ml-16" : "md:ml-60",
-          )}
+        <motion.div
+          className="hidden md:block"
+          animate={{
+            left: sidebarCollapsed ? 64 : 240,
+          }}
+          transition={{ duration: 0.2, ease: "easeInOut" }}
           style={{
             position: "fixed",
             top: 0,
             right: 0,
-            left: sidebarCollapsed ? 64 : 240,
             zIndex: 30,
           }}
         >
           <TopBar title={title} />
-        </div>
+        </motion.div>
         <div className="md:hidden">
           <TopBar
             title={title}
@@ -83,12 +84,7 @@ export function AppShell({ children, title }: AppShellProps) {
             showMenuButton
           />
         </div>
-        <div
-          className={cn(
-            "flex-1 p-6 pt-6 md:pt-22",
-            sidebarCollapsed ? "md:ml-16" : "md:ml-60",
-          )}
-        >
+        <div className="flex-1 p-6 pt-6 md:pt-22">
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}

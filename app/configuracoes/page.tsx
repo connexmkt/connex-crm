@@ -47,7 +47,7 @@ export default function ConfiguracoesPage() {
 
   return (
     <AppShell title="Configurações">
-      <div className="max-w-5xl">
+      <div className="max-w-5xl mx-auto">
         <Tabs defaultValue="agencia" className="space-y-6">
           <TabsList className="grid w-full grid-cols-5 h-12 bg-secondary/30 p-1">
             <TabsTrigger value="agencia" className="gap-2 text-xs sm:text-sm">

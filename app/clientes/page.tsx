@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { clients, activities, campaigns } from "@/lib/seed-data";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { activities, campaigns } from "@/lib/seed-data";
 import type { Client } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout";
@@ -11,6 +14,28 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import {
   Search,
@@ -27,6 +52,7 @@ import {
   Calendar,
   Building2,
   DollarSign,
+  Loader2,
 } from "lucide-react";
 
 import {
@@ -39,6 +65,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+import { toast } from "sonner";
+
+// ─── Schemas ─────────────────────────────────────────────────────────────────
+
+const novoClienteSchema = z.object({
+  name: z.string().min(2, "Nome deve ter ao menos 2 caracteres").max(100),
+  segment: z.string().min(1, "Segmento é obrigatório"),
+  status: z.enum(["Ativo", "Lead", "Inativo", "Em risco"], {
+    required_error: "Selecione um status",
+  }),
+  plan: z.string().min(1, "Plano é obrigatório"),
+  contractValue: z.coerce
+    .number({ invalid_type_error: "Insira um valor válido" })
+    .positive("Valor deve ser maior que zero"),
+  contact: z.object({
+    email: z.string().email("E-mail inválido"),
+    phone: z.string().min(8, "Telefone deve ter ao menos 8 dígitos"),
+    website: z
+      .string()
+      .url("URL inválida")
+      .optional()
+      .or(z.literal("")),
+  }),
+});
+
+type NovoClienteForm = z.infer<typeof novoClienteSchema>;
+
+// ─── Status config ────────────────────────────────────────────────────────────
 
 const statusConfig = {
   Ativo: {
@@ -67,6 +122,278 @@ function StatusBadge({ status }: { status: Client["status"] }) {
     </Badge>
   );
 }
+
+// ─── Novo Cliente Dialog ──────────────────────────────────────────────────────
+
+function NovoClienteDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: (client: Client) => void;
+}) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm<NovoClienteForm>({
+    resolver: zodResolver(novoClienteSchema),
+    defaultValues: {
+      name: "",
+      segment: "",
+      status: "Lead",
+      plan: "",
+      contractValue: 0,
+      contact: { email: "", phone: "", website: "" },
+    },
+  });
+
+  const handleClose = () => {
+    form.reset();
+    onOpenChange(false);
+  };
+
+  const onSubmit = async (values: NovoClienteForm) => {
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/clientes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...values,
+          contact: {
+            ...values.contact,
+            website: values.contact.website || undefined,
+          },
+        }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        const msg =
+          json?.details?.formErrors?.[0] ??
+          json?.error ??
+          "Erro ao criar cliente";
+        toast.error(msg);
+        return;
+      }
+
+      toast.success(`Cliente "${values.name}" criado com sucesso!`);
+      onCreated(json.data as Client);
+      handleClose();
+    } catch {
+      toast.error("Erro de conexão. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-heading text-lg">
+            Novo Cliente
+          </DialogTitle>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-4 py-2"
+          >
+            {/* Nome */}
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome da empresa</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex: Acme Ltda" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Segmento */}
+              <FormField
+                control={form.control}
+                name="segment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Segmento</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: E-commerce" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Status */}
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Ativo">Ativo</SelectItem>
+                        <SelectItem value="Lead">Lead</SelectItem>
+                        <SelectItem value="Inativo">Inativo</SelectItem>
+                        <SelectItem value="Em risco">Em risco</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Plano */}
+              <FormField
+                control={form.control}
+                name="plan"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Plano</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: Premium" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Valor do contrato */}
+              <FormField
+                control={form.control}
+                name="contractValue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor mensal (R$)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        placeholder="0,00"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="pt-1">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Contato
+              </p>
+              <div className="space-y-3">
+                {/* E-mail */}
+                <FormField
+                  control={form.control}
+                  name="contact.email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>E-mail</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="contato@empresa.com"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Telefone */}
+                <FormField
+                  control={form.control}
+                  name="contact.phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telefone</FormLabel>
+                      <FormControl>
+                        <Input placeholder="(11) 99999-9999" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Website */}
+                <FormField
+                  control={form.control}
+                  name="contact.website"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Website{" "}
+                        <span className="text-muted-foreground font-normal">
+                          (opcional)
+                        </span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://empresa.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                disabled={isSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  "Criar Cliente"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Client Drawer ────────────────────────────────────────────────────────────
 
 function ClientDrawer({
   client,
@@ -198,23 +525,25 @@ function ClientDrawer({
                     )}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Responsável</span>
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-5 w-5">
-                      <AvatarImage src={client.responsible.avatar} />
-                      <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
-                        {client.responsible.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium text-foreground">
-                      {client.responsible.name.split(" ")[0]}
-                    </span>
+                {client.responsible && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Responsável</span>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={client.responsible.avatar} />
+                        <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                          {client.responsible.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium text-foreground">
+                        {client.responsible.name.split(" ")[0]}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">
                     Última Atividade
@@ -338,6 +667,9 @@ function NotasTab({ clientId }: { clientId: string }) {
     setNoteText("");
   };
 
+  // clientId is intentionally unused here — notes are stored locally per session
+  void clientId;
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -385,6 +717,8 @@ function NotasTab({ clientId }: { clientId: string }) {
   );
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 const statusFilters = [
   "Todos",
   "Ativo",
@@ -394,17 +728,49 @@ const statusFilters = [
 ] as const;
 
 export default function ClientesPage() {
+  const [clientList, setClientList] = useState<Client[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("Todos");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  const [novoClienteOpen, setNovoClienteOpen] = useState(false);
 
-  const filtered = clients.filter((c) => {
+  const fetchClientes = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({ page: "1", limit: "100" });
+      if (statusFilter !== "Todos") params.set("status", statusFilter);
+      if (search) params.set("search", search);
+
+      const res = await fetch(`/api/clientes?${params}`);
+      if (!res.ok) throw new Error("Falha ao carregar clientes");
+
+      const json = await res.json();
+      setClientList(json.data?.items ?? []);
+    } catch {
+      // Fallback to empty list — toast handled by the component if needed
+      setClientList([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [statusFilter, search]);
+
+  useEffect(() => {
+    fetchClientes();
+  }, [fetchClientes]);
+
+  const handleClientCreated = (newClient: Client) => {
+    setClientList((prev) => [newClient, ...prev]);
+  };
+
+  const filtered = clientList.filter((c) => {
     const matchesSearch =
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.segment.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "Todos" || c.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "Todos" || c.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -458,15 +824,23 @@ export default function ClientesPage() {
                 <List className="h-4 w-4" />
               )}
             </Button>
-            <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+            <Button
+              className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => setNovoClienteOpen(true)}
+            >
               <Plus className="h-4 w-4" />
               Novo Cliente
             </Button>
           </div>
         </div>
 
-        {/* Table view */}
-        {viewMode === "table" ? (
+        {/* Loading skeleton */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : viewMode === "table" ? (
+          /* Table view */
           <div className="overflow-hidden rounded-xl border border-border bg-card">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -505,7 +879,6 @@ export default function ClientesPage() {
                       onClick={() => setSelectedClient(client)}
                       style={{ position: "relative" }}
                     >
-                      {/* Blue left border on hover */}
                       <td className="relative px-4 py-3.5">
                         <div className="absolute left-0 top-0 h-full w-[3px] scale-y-0 rounded-r bg-primary transition-transform group-hover:scale-y-100" />
                         <div className="flex items-center gap-3">
@@ -526,20 +899,26 @@ export default function ClientesPage() {
                         <StatusBadge status={client.status} />
                       </td>
                       <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage src={client.responsible.avatar} />
-                            <AvatarFallback className="bg-primary/10 text-[9px] text-primary">
-                              {client.responsible.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm text-foreground">
-                            {client.responsible.name.split(" ")[0]}
+                        {client.responsible ? (
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={client.responsible.avatar} />
+                              <AvatarFallback className="bg-primary/10 text-[9px] text-primary">
+                                {client.responsible.name
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm text-foreground">
+                              {client.responsible.name.split(" ")[0]}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            —
                           </span>
-                        </div>
+                        )}
                       </td>
                       <td className="px-4 py-3.5">
                         <span className="text-sm text-muted-foreground">
@@ -629,18 +1008,28 @@ export default function ClientesPage() {
                   <span className="text-sm font-medium text-foreground">
                     R$ {client.contractValue.toLocaleString("pt-BR")}/mês
                   </span>
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src={client.responsible.avatar} />
-                    <AvatarFallback className="bg-primary/10 text-[9px] text-primary">
-                      {client.responsible.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
+                  {client.responsible && (
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={client.responsible.avatar} />
+                      <AvatarFallback className="bg-primary/10 text-[9px] text-primary">
+                        {client.responsible.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
                 </div>
               </motion.div>
             ))}
+            {filtered.length === 0 && (
+              <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
+                <Building2 className="h-10 w-10 text-muted-foreground/30" />
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Nenhum cliente encontrado
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -689,6 +1078,13 @@ export default function ClientesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Novo Cliente Dialog */}
+      <NovoClienteDialog
+        open={novoClienteOpen}
+        onOpenChange={setNovoClienteOpen}
+        onCreated={handleClientCreated}
+      />
     </AppShell>
   );
 }

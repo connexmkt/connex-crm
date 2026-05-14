@@ -404,7 +404,7 @@ export default function PipelinePage() {
 
   useEffect(() => {
     fetch("/api/leads")
-      .then((r) => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.statusText)))
       .then((json) => setLeads(json.data as Lead[]))
       .catch((err) => console.error("[pipeline] falha ao carregar leads:", err))
       .finally(() => setLoading(false));
@@ -453,7 +453,7 @@ export default function PipelinePage() {
 
   if (loading) {
     return (
-      <AppShell title="Pipeline">
+      <AppShell title="Kanban ">
         <div className="flex h-64 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -462,7 +462,7 @@ export default function PipelinePage() {
   }
 
   return (
-    <AppShell title="Pipeline">
+    <AppShell title="Kanban">
       <div className="overflow-x-auto pb-6">
         <DndContext
           sensors={sensors}

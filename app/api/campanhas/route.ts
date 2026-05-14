@@ -1,17 +1,17 @@
 /**
- * GET /api/leads
+ * GET /api/campanhas
  *
- * Retorna todos os leads do pipeline.
- * Dados simulados no servidor até a tabela `leads` existir no Supabase.
+ * Retorna todas as campanhas.
+ * Dados simulados no servidor até a tabela `campanhas` existir no Supabase.
  *
- * Response 200: { data: Lead[] }
+ * Response 200: { data: Campaign[] }
  * Response 401: Unauthorized
  * Response 500: Internal Server Error
  */
 
 import { createClient } from '@/lib/server'
 import { ok, unauthorized, serverError } from '@/lib/api/response'
-import { MOCK_LEADS } from '@/lib/mocks/leads'
+import { MOCK_CAMPANHAS } from '@/lib/mocks/campanhas'
 
 export async function GET() {
   const supabase = await createClient()
@@ -19,9 +19,9 @@ export async function GET() {
   if (!user) return unauthorized()
 
   try {
-    return ok(MOCK_LEADS)
+    return ok(MOCK_CAMPANHAS)
   } catch (err) {
-    console.error('[GET /api/leads]', err)
+    console.error('[GET /api/campanhas]', err)
     return serverError()
   }
 }

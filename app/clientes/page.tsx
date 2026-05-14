@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { Activity, Campaign, Client } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { AppShell } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,16 +126,20 @@ function StatusBadge({ status }: { status: Client["status"] }) {
   );
 }
 
-// ─── Novo Cliente Dialog ──────────────────────────────────────────────────────
+// ─── Cliente Form Dialog ──────────────────────────────────────────────────────
 
-function NovoClienteDialog({
+function ClienteFormDialog({
   open,
   onOpenChange,
-  onCreated,
+  onSuccess,
+  mode = "create",
+  initialData,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: (client: Client) => void;
+  onSuccess: (client: Client) => void;
+  mode?: "create" | "edit";
+  initialData?: Client;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -150,16 +155,45 @@ function NovoClienteDialog({
     },
   });
 
+  useEffect(() => {
+    if (open && mode === "edit" && initialData) {
+      form.reset({
+        name: initialData.name,
+        segment: initialData.segment,
+        status: initialData.status,
+        plan: initialData.plan,
+        contractValue: initialData.contractValue,
+        contact: {
+          email: initialData.contact.email,
+          phone: initialData.contact.phone,
+          website: initialData.contact.website || "",
+        },
+      });
+    } else if (open && mode === "create") {
+      form.reset({
+        name: "",
+        segment: "",
+        status: "Lead",
+        plan: "",
+        contractValue: 0,
+        contact: { email: "", phone: "", website: "" },
+      });
+    }
+  }, [open, mode, initialData, form]);
+
   const handleClose = () => {
-    form.reset();
     onOpenChange(false);
   };
 
   const onSubmit = async (values: NovoClienteForm) => {
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/clientes", {
-        method: "POST",
+      const url =
+        mode === "create" ? "/api/clientes" : `/api/clientes/${initialData?.id}`;
+      const method = mode === "create" ? "POST" : "PUT";
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...values,
@@ -176,13 +210,17 @@ function NovoClienteDialog({
         const msg =
           json?.details?.formErrors?.[0] ??
           json?.error ??
-          "Erro ao criar cliente";
+          `Erro ao ${mode === "create" ? "criar" : "atualizar"} cliente`;
         toast.error(msg);
         return;
       }
 
-      toast.success(`Cliente "${values.name}" criado com sucesso!`);
-      onCreated(json.data as Client);
+      toast.success(
+        `Cliente "${values.name}" ${
+          mode === "create" ? "criado" : "atualizado"
+        } com sucesso!`,
+      );
+      onSuccess(json.data as Client);
       handleClose();
     } catch {
       toast.error("Erro de conexão. Tente novamente.");
@@ -196,7 +234,7 @@ function NovoClienteDialog({
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-heading text-lg">
-            Novo Cliente
+            {mode === "create" ? "Novo Cliente" : "Editar Cliente"}
           </DialogTitle>
         </DialogHeader>
 
@@ -245,7 +283,7 @@ function NovoClienteDialog({
                     <FormLabel>Status</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -383,8 +421,10 @@ function NovoClienteDialog({
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Salvando...
                   </>
-                ) : (
+                ) : mode === "create" ? (
                   "Criar Cliente"
+                ) : (
+                  "Salvar Alterações"
                 )}
               </Button>
             </DialogFooter>
@@ -394,6 +434,7 @@ function NovoClienteDialog({
     </Dialog>
   );
 }
+
 
 // ─── Client Drawer ────────────────────────────────────────────────────────────
 
@@ -735,48 +776,71 @@ export default function ClientesPage() {
   const [clientList, setClientList] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [statusFilter, setStatusFilter] = useState<string>("Todos");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
-  const [novoClienteOpen, setNovoClienteOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Client | null>(null);
 
-  const fetchClientes = useCallback(async () => {
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const fetchClientes = useCallback(async (currentSearch: string, currentStatus: string) => {
+    // Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsLoading(true);
     try {
       const params = new URLSearchParams({ page: "1", limit: "100" });
-      if (statusFilter !== "Todos") params.set("status", statusFilter);
-      if (search) params.set("search", search);
+      if (currentStatus !== "Todos") params.set("status", currentStatus);
+      if (currentSearch) params.set("search", currentSearch);
 
-      const res = await fetch(`/api/clientes?${params}`);
+      const res = await fetch(`/api/clientes?${params}`, {
+        signal: controller.signal
+      });
       if (!res.ok) throw new Error("Falha ao carregar clientes");
 
       const json = await res.json();
       setClientList(json.data?.items ?? []);
-    } catch {
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
       // Fallback to empty list — toast handled by the component if needed
       setClientList([]);
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+      }
     }
-  }, [statusFilter, search]);
+  }, []);
 
   useEffect(() => {
-    fetchClientes();
-  }, [fetchClientes]);
+    fetchClientes(debouncedSearch, statusFilter);
+    
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [debouncedSearch, statusFilter, fetchClientes]);
 
-  const handleClientCreated = (newClient: Client) => {
-    setClientList((prev) => [newClient, ...prev]);
+  const handleClientSuccess = (client: Client) => {
+    if (editTarget) {
+      setClientList((prev) =>
+        prev.map((c) => (c.id === client.id ? client : c)),
+      );
+    } else {
+      setClientList((prev) => [client, ...prev]);
+    }
+    setEditTarget(null);
   };
 
-  const filtered = clientList.filter((c) => {
-    const matchesSearch =
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.segment.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus =
-      statusFilter === "Todos" || c.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filtered = clientList; // Now using backend-filtered list directly
 
   return (
     <AppShell title="Clientes">
@@ -830,7 +894,10 @@ export default function ClientesPage() {
             </Button>
             <Button
               className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={() => setNovoClienteOpen(true)}
+              onClick={() => {
+                setEditTarget(null);
+                setFormOpen(true);
+              }}
             >
               <Plus className="h-4 w-4" />
               Novo Cliente
@@ -955,6 +1022,10 @@ export default function ClientesPage() {
                             size="icon"
                             className="h-8 w-8"
                             aria-label="Editar"
+                            onClick={() => {
+                              setEditTarget(client);
+                              setFormOpen(true);
+                            }}
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
@@ -1083,11 +1154,13 @@ export default function ClientesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Novo Cliente Dialog */}
-      <NovoClienteDialog
-        open={novoClienteOpen}
-        onOpenChange={setNovoClienteOpen}
-        onCreated={handleClientCreated}
+      {/* Cliente Form Dialog */}
+      <ClienteFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        onSuccess={handleClientSuccess}
+        mode={editTarget ? "edit" : "create"}
+        initialData={editTarget ?? undefined}
       />
     </AppShell>
   );

@@ -16,8 +16,12 @@
 import { createClient } from '@/lib/server'
 import { ok, unauthorized, serverError } from '@/lib/api/response'
 import type { Activity, Task, Client, User } from '@/lib/types'
+import { TasksService } from '@/lib/services/tasks.service'
+import { MOCK_LEADS } from '@/lib/mocks/leads'
+import { MOCK_CAMPANHAS } from '@/lib/mocks/campanhas'
 
 // ── Tipos do payload ───────────────────────────────────────────────────────────
+// ... (rest of types)
 
 type KpiData = {
   totalClientes: number
@@ -94,49 +98,6 @@ const MOCK_ACTIVITIES: Activity[] = [
   },
 ]
 
-const MOCK_TASKS: Task[] = [
-  {
-    id: 'task-1',
-    title: 'Revisar proposta para Novara Digital',
-    dueDate: new Date(now + 1 * 86_400_000),
-    assignee: PLACEHOLDER_USER,
-    completed: false,
-    priority: 'high',
-  },
-  {
-    id: 'task-2',
-    title: 'Enviar relatório mensal – Grupo Alfa',
-    dueDate: new Date(now + 2 * 86_400_000),
-    assignee: { ...PLACEHOLDER_USER, name: 'Carlos Menezes' },
-    completed: false,
-    priority: 'medium',
-  },
-  {
-    id: 'task-3',
-    title: 'Agendar call de onboarding',
-    dueDate: new Date(now + 4 * 86_400_000),
-    assignee: { ...PLACEHOLDER_USER, name: 'Julia Ramos' },
-    completed: false,
-    priority: 'low',
-  },
-  {
-    id: 'task-4',
-    title: 'Atualizar briefing de campanha Google Ads',
-    dueDate: new Date(now + 5 * 86_400_000),
-    assignee: { ...PLACEHOLDER_USER, name: 'Pedro Souza' },
-    completed: false,
-    priority: 'medium',
-  },
-]
-
-const MOCK_PIPELINE: PipelineChartItem[] = [
-  { stage: 'Atração',   count: 12, color: '#5B5FE8' },
-  { stage: 'Retenção',  count: 8,  color: '#7C7FEE' },
-  { stage: 'Adesão',    count: 5,  color: '#9DA0F4' },
-  { stage: 'Recompra',  count: 3,  color: '#BEC0FA' },
-  { stage: 'Indicação', count: 2,  color: '#DFDFF9' },
-]
-
 // ── DB row shape ───────────────────────────────────────────────────────────────
 
 interface ClientRow {
@@ -169,6 +130,14 @@ function rowToClient(row: ClientRow): Client {
   }
 }
 
+const STAGE_CONFIG: Record<string, { label: string; color: string }> = {
+  atracao: { label: 'Atração', color: '#5B5FE8' },
+  retencao: { label: 'Retenção', color: '#7C7FEE' },
+  adesao: { label: 'Adesão', color: '#9DA0F4' },
+  recompra: { label: 'Recompra', color: '#BEC0FA' },
+  indicacao: { label: 'Indicação', color: '#DFDFF9' },
+}
+
 // ── Handler ────────────────────────────────────────────────────────────────────
 
 export async function GET() {
@@ -191,12 +160,28 @@ export async function GET() {
     const totalClientes = ativos.length
     const faturamentoMes = ativos.reduce((sum, c) => sum + c.contractValue, 0)
 
+    const tasks = await TasksService.list(supabase, {
+      ownerId: user.id,
+      limit: 5,
+    })
+
+    // Derivar dados do pipeline a partir dos leads mockados
+    const pipelineChartData: PipelineChartItem[] = Object.entries(STAGE_CONFIG).map(
+      ([stageKey, config]) => ({
+        stage: config.label,
+        count: MOCK_LEADS.filter((l) => l.stage === stageKey).length,
+        color: config.color,
+      })
+    )
+
+    const campanhasAtivasCount = MOCK_CAMPANHAS.filter((c) => c.status === 'Ativa').length
+
     const kpiData: KpiData = {
       totalClientes,
       clientesVariacao: 8.3,
-      leadsNoPipeline: MOCK_PIPELINE.reduce((s, p) => s + p.count, 0),
+      leadsNoPipeline: MOCK_LEADS.length,
       leadsVariacao: 12.5,
-      campanhasAtivas: 7,
+      campanhasAtivas: campanhasAtivasCount,
       campanhasVariacao: -2.1,
       faturamentoMes: faturamentoMes || 87_500,
       faturamentoVariacao: 5.7,
@@ -204,9 +189,9 @@ export async function GET() {
 
     const payload: DashboardPayload = {
       kpiData,
-      pipelineChartData: MOCK_PIPELINE,
+      pipelineChartData,
       activities: MOCK_ACTIVITIES,
-      tasks: MOCK_TASKS,
+      tasks,
       atRiskClients,
     }
 

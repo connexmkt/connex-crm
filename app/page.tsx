@@ -30,9 +30,12 @@ import {
   Circle,
   AlertTriangle,
   Phone,
+  Trash2,
 } from "lucide-react";
 
 import type { DashboardPayload } from "@/app/api/dashboard/route";
+import { NovaTarefaDialog } from "@/components/tasks/nova-tarefa-dialog";
+import { toast } from "sonner";
 
 // ── Tipos locais ──────────────────────────────────────────────────────────────
 
@@ -200,13 +203,14 @@ export default function DashboardPage() {
     null,
   );
   const [loading, setLoading] = useState(true);
-  const [completedTasks, setCompletedTasks] = useState<string[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
     fetch("/api/dashboard")
       .then((res) => res.json())
       .then((json: { data: DashboardPayload }) => {
         setDashboardData(json.data);
+        setTasks(json.data.tasks || []);
       })
       .catch((err) => console.error("[Dashboard] fetch error:", err))
       .finally(() => setLoading(false));
@@ -216,13 +220,56 @@ export default function DashboardPage() {
   const pipelineChartData: PipelineItem[] =
     dashboardData?.pipelineChartData ?? [];
   const activities: Activity[] = dashboardData?.activities ?? [];
-  const tasks: Task[] = dashboardData?.tasks ?? [];
   const atRiskClients: AtRiskClient[] = dashboardData?.atRiskClients ?? [];
 
-  const toggleTask = (id: string) => {
-    setCompletedTasks((prev) =>
-      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id],
+  const toggleTask = async (id: string, currentStatus: boolean) => {
+    const newStatus = !currentStatus;
+
+    // Atualização otimista
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, completed: newStatus } : t)),
     );
+
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: newStatus }),
+      });
+
+      if (!res.ok) throw new Error("Erro ao atualizar tarefa");
+    } catch (error) {
+      console.error("Error toggling task:", error);
+      toast.error("Erro ao atualizar tarefa");
+      // Reverter em caso de erro
+      setTasks((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, completed: currentStatus } : t)),
+      );
+    }
+  };
+
+  const deleteTask = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta tarefa?")) return;
+
+    const originalTasks = [...tasks];
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Erro ao excluir tarefa");
+      toast.success("Tarefa excluída");
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      toast.error("Erro ao excluir tarefa");
+      setTasks(originalTasks);
+    }
+  };
+
+  const handleTaskCreated = (newTask: Task) => {
+    setTasks((prev) => [newTask, ...prev].slice(0, 10)); // Mantém limite visual
   };
 
   const priorityColors = {
@@ -383,10 +430,11 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Tasks */}
           <Card className="bg-card border-border">
-            <CardHeader className="pb-4">
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
               <CardTitle className="font-heading text-base font-semibold">
                 Próximas Tarefas
               </CardTitle>
+              <NovaTarefaDialog onTaskCreated={handleTaskCreated} />
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -407,19 +455,26 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-3">
                   {tasks.map((task) => {
-                    const done = completedTasks.includes(task.id);
+                    const done = task.completed;
                     return (
                       <div
                         key={task.id}
-                        className="flex items-center gap-3 rounded-lg p-2 hover:bg-secondary/50 transition-colors cursor-pointer"
-                        onClick={() => toggleTask(task.id)}
+                        className="group flex items-center gap-3 rounded-lg p-2 hover:bg-secondary/50 transition-colors"
                       >
-                        {done ? (
-                          <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
-                        ) : (
-                          <Circle className="h-5 w-5 shrink-0 text-muted-foreground" />
-                        )}
-                        <div className="flex-1 min-w-0">
+                        <div
+                          className="cursor-pointer"
+                          onClick={() => toggleTask(task.id, done)}
+                        >
+                          {done ? (
+                            <CheckCircle2 className="h-5 w-5 shrink-0 text-success" />
+                          ) : (
+                            <Circle className="h-5 w-5 shrink-0 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div
+                          className="flex-1 min-w-0 cursor-pointer"
+                          onClick={() => toggleTask(task.id, done)}
+                        >
                           <p
                             className={cn(
                               "text-sm font-medium transition-all",
@@ -467,6 +522,17 @@ export default function DashboardPage() {
                                 .join("")}
                             </AvatarFallback>
                           </Avatar>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-danger"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteTask(task.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     );

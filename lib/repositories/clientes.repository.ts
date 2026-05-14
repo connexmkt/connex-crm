@@ -86,7 +86,9 @@ export const ClientesRepository = {
       .order('created_at', { ascending: false })
 
     if (status) query = query.eq('status', status)
-    if (search) query = query.ilike('name', `%${search}%`)
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,segment.ilike.%${search}%`)
+    }
 
     const from = (page - 1) * limit
     const { data, error, count } = await query.range(from, from + limit - 1)

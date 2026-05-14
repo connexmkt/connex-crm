@@ -5,8 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { activities, campaigns } from "@/lib/seed-data";
-import type { Client } from "@/lib/types";
+import type { Activity, Campaign, Client } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import {
   Form,
   FormControl,
@@ -22,6 +22,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+
 import {
   Select,
   SelectContent,
@@ -402,8 +404,10 @@ function ClientDrawer({
   client: Client;
   onClose: () => void;
 }) {
-  const clientActivities = activities.filter((a) => a.client?.id === client.id);
-  const clientCampaigns = campaigns.filter((c) => c.client.id === client.id);
+  const allActivities: Activity[] = [];
+  const allCampaigns: Campaign[] = [];
+  const clientActivities = allActivities.filter((a) => a.client?.id === client.id);
+  const clientCampaigns = allCampaigns.filter((c) => c.client.id === client.id);
 
   return (
     <motion.div

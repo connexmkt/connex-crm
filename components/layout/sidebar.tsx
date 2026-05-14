@@ -1,9 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { teamMembers } from "@/lib/seed-data";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+import type { User } from "@/lib/types";
+
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/clientes", label: "Clientes", icon: Users },
@@ -45,7 +47,22 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
-  const currentUser = teamMembers[0];
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json: { data: User } | null) => {
+        if (json?.data) setCurrentUser(json.data);
+      })
+      .catch(() => null);
+  }, []);
+
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+  }
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -152,14 +169,23 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {/* User section */}
         <div className="border-t border-white/10 p-4">
           <div className="flex items-center gap-3">
-            <Avatar className="h-9 w-9">
-              <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-              <AvatarFallback className="bg-primary/20 text-primary">
-                {currentUser.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")}
-              </AvatarFallback>
+            <Avatar className="h-9 w-9 shrink-0">
+              {currentUser ? (
+                <>
+                  <AvatarImage
+                    src={currentUser.avatar}
+                    alt={currentUser.name}
+                  />
+                  <AvatarFallback className="bg-primary/20 text-primary">
+                    {currentUser.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </AvatarFallback>
+                </>
+              ) : (
+                <AvatarFallback className="bg-white/10" />
+              )}
             </Avatar>
             <AnimatePresence>
               {!collapsed && (
@@ -169,19 +195,27 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   exit={{ opacity: 0, width: 0 }}
                   className="flex flex-1 items-center justify-between overflow-hidden"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-sidebar-text-active">
-                      {currentUser.name}
-                    </p>
-                    <p className="truncate text-xs text-sidebar-text">
-                      {currentUser.role}
-                    </p>
-                  </div>
+                  {currentUser ? (
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-sidebar-text-active">
+                        {currentUser.name}
+                      </p>
+                      <p className="truncate text-xs text-sidebar-text">
+                        {currentUser.role}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="min-w-0 space-y-1.5">
+                      <div className="h-3 w-24 animate-pulse rounded bg-white/10" />
+                      <div className="h-2 w-14 animate-pulse rounded bg-white/10" />
+                    </div>
+                  )}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={handleLogout}
                         className="h-8 w-8 shrink-0 text-sidebar-text hover:bg-white/10 hover:text-sidebar-text-active"
                       >
                         <LogOut className="h-4 w-4" />

@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Bell, Sun, Moon, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { notifications, teamMembers } from "@/lib/seed-data";
 import { cn } from "@/lib/utils";
+import type { Notification, User } from "@/lib/types";
 
 import {
   DropdownMenu,
@@ -27,7 +27,25 @@ interface TopBarProps {
 
 export function TopBar({ title, onMenuClick, showMenuButton }: TopBarProps) {
   const [isDark, setIsDark] = useState(true);
-  const currentUser = teamMembers[0];
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (json?.data) setCurrentUser(json.data as User);
+      })
+      .catch(() => null);
+
+    fetch("/api/notifications")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (json?.data) setNotifications(json.data as Notification[]);
+      })
+      .catch(() => null);
+  }, []);
+
   const unreadNotifications = notifications.filter((n) => !n.read);
 
   const toggleTheme = () => {
@@ -35,7 +53,7 @@ export function TopBar({ title, onMenuClick, showMenuButton }: TopBarProps) {
     document.documentElement.classList.toggle("dark");
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationDot = (type: Notification["type"]) => {
     switch (type) {
       case "success":
         return "bg-success";
@@ -47,6 +65,13 @@ export function TopBar({ title, onMenuClick, showMenuButton }: TopBarProps) {
         return "bg-primary";
     }
   };
+
+  const userInitials = currentUser
+    ? currentUser.name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+    : "…";
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/80 px-6 backdrop-blur-sm">
@@ -134,7 +159,7 @@ export function TopBar({ title, onMenuClick, showMenuButton }: TopBarProps) {
               )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {notifications.slice(0, 5).map((notification) => (
+            {notifications.slice(0, 5).map((notification: Notification) => (
               <DropdownMenuItem
                 key={notification.id}
                 className={cn(
@@ -146,7 +171,7 @@ export function TopBar({ title, onMenuClick, showMenuButton }: TopBarProps) {
                   <div
                     className={cn(
                       "mt-1 h-2 w-2 shrink-0 rounded-full",
-                      getNotificationIcon(notification.type),
+                      getNotificationDot(notification.type),
                     )}
                   />
                   <div className="flex-1">
@@ -181,25 +206,27 @@ export function TopBar({ title, onMenuClick, showMenuButton }: TopBarProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-9 gap-2 px-2">
               <Avatar className="h-7 w-7">
-                <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
+                <AvatarImage
+                  src={currentUser?.avatar}
+                  alt={currentUser?.name ?? "Usuário"}
+                />
                 <AvatarFallback className="bg-primary/20 text-xs text-primary">
-                  {currentUser.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
+                  {userInitials}
                 </AvatarFallback>
               </Avatar>
               <span className="hidden text-sm font-medium md:inline-block">
-                {currentUser.name.split(" ")[0]}
+                {currentUser?.name.split(" ")[0] ?? "…"}
               </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">{currentUser.name}</p>
+                <p className="text-sm font-medium">
+                  {currentUser?.name ?? "Carregando…"}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  {currentUser.email}
+                  {currentUser?.email ?? ""}
                 </p>
               </div>
             </DropdownMenuLabel>

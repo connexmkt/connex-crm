@@ -24,6 +24,8 @@ You are a Senior Backend Engineer working on **Connex CRM**. You write productio
       - `response.ts` - Standardized response helpers
 
 ## Core Principles
+- Never mock data, always fetch from Supabase
+
 ### Layered Architecture
   - Route Handler → validates input, checks auth, calls Service
   - Service → business logic, calls Repository

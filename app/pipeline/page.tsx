@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, Clock, X, DollarSign } from "lucide-react";
+import { Plus, Clock, X, DollarSign, Loader2 } from "lucide-react";
 import { AppShell } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { leads as initialLeads } from "@/lib/seed-data";
 import type { Lead, FunnelStage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -136,7 +135,7 @@ function LeadCard({
           <AvatarFallback className="bg-primary/10 text-[9px] text-primary">
             {lead.responsible.name
               .split(" ")
-              .map((n) => n[0])
+              .map((n: string) => n[0])
               .join("")}
           </AvatarFallback>
         </Avatar>
@@ -348,7 +347,7 @@ function LeadDetailDrawer({
                   <AvatarFallback className="bg-primary/10 text-[9px] text-primary">
                     {lead.responsible.name
                       .split(" ")
-                      .map((n) => n[0])
+                      .map((n: string) => n[0])
                       .join("")}
                   </AvatarFallback>
                 </Avatar>
@@ -398,9 +397,18 @@ function LeadDetailDrawer({
 }
 
 export default function PipelinePage() {
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+
+  useEffect(() => {
+    fetch("/api/leads")
+      .then((r) => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then((json) => setLeads(json.data as Lead[]))
+      .catch((err) => console.error("[pipeline] falha ao carregar leads:", err))
+      .finally(() => setLoading(false));
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -442,6 +450,16 @@ export default function PipelinePage() {
     },
     {} as Record<FunnelStage, Lead[]>,
   );
+
+  if (loading) {
+    return (
+      <AppShell title="Pipeline">
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell title="Pipeline">

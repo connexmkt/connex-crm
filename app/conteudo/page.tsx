@@ -8,9 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { contentItems, clients, teamMembers } from "@/lib/seed-data";
 import { cn } from "@/lib/utils";
-import { ContentItem } from "@/lib/types";
+import { Client, ContentItem, User } from "@/lib/types";
 
 import {
   format,
@@ -72,6 +71,113 @@ const statusColors: Record<string, string> = {
   Aprovado: "bg-primary/10 text-primary border-primary/20",
   Publicado: "bg-success/10 text-success border-success/20",
 };
+
+const teamMembers: User[] = [
+  {
+    id: "u1",
+    name: "Ana Silva",
+    email: "ana@connex.com",
+    avatar: "/avatars/ana.png",
+    role: "Analista",
+  },
+  {
+    id: "u2",
+    name: "Carlos Melo",
+    email: "carlos@connex.com",
+    avatar: "/avatars/carlos.png",
+    role: "Gestor",
+  },
+  {
+    id: "u3",
+    name: "Julia Ramos",
+    email: "julia@connex.com",
+    avatar: "/avatars/julia.png",
+    role: "Analista",
+  },
+];
+
+const clients: Client[] = [
+  {
+    id: "c1",
+    name: "Acme Corp",
+    segment: "Tecnologia",
+    status: "Ativo",
+    responsible: teamMembers[1],
+    contractValue: 5000,
+    lastActivity: new Date("2026-05-10"),
+    onboardingDate: new Date("2025-01-15"),
+    plan: "Pro",
+    contact: { email: "contato@acme.com", phone: "(11) 9999-0001" },
+  },
+  {
+    id: "c2",
+    name: "Globex",
+    segment: "Varejo",
+    status: "Ativo",
+    responsible: teamMembers[0],
+    contractValue: 3500,
+    lastActivity: new Date("2026-05-08"),
+    onboardingDate: new Date("2025-03-20"),
+    plan: "Basic",
+    contact: { email: "contato@globex.com", phone: "(11) 9999-0002" },
+  },
+  {
+    id: "c3",
+    name: "Initech",
+    segment: "Serviços",
+    status: "Lead",
+    responsible: teamMembers[2],
+    contractValue: 0,
+    lastActivity: new Date("2026-05-05"),
+    onboardingDate: new Date("2026-04-01"),
+    plan: "Trial",
+    contact: { email: "contato@initech.com", phone: "(11) 9999-0003" },
+  },
+];
+
+const contentItems: ContentItem[] = [
+  {
+    id: "ci1",
+    client: clients[0],
+    platform: "Instagram",
+    type: "Feed",
+    title: "5 dicas de produtividade para times remotos",
+    caption: "Trabalhar de casa nunca foi tão eficiente! 🚀",
+    publishDate: new Date(),
+    status: "Aprovado",
+    responsible: teamMembers[0],
+  },
+  {
+    id: "ci2",
+    client: clients[1],
+    platform: "LinkedIn",
+    type: "Artigo",
+    title: "Como o varejo se reinventa em 2026",
+    publishDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+    status: "Aguardando aprovação",
+    responsible: teamMembers[1],
+  },
+  {
+    id: "ci3",
+    client: clients[0],
+    platform: "Instagram",
+    type: "Reels",
+    title: "Bastidores do lançamento do produto X",
+    publishDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000),
+    status: "Rascunho",
+    responsible: teamMembers[2],
+  },
+  {
+    id: "ci4",
+    client: clients[2],
+    platform: "YouTube",
+    type: "Feed",
+    title: "Webinar: Serviços gerenciados em 2026",
+    publishDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    status: "Publicado",
+    responsible: teamMembers[1],
+  },
+];
 
 export default function ConteudoPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -196,7 +302,7 @@ export default function ConteudoPage() {
           {/* Days Grid */}
           <div className="grid grid-cols-7 auto-rows-[120px] md:auto-rows-[160px]">
             {calendarDays.map((day, i) => {
-              const dayItems = filteredItems.filter((item) =>
+              const dayItems = filteredItems.filter((item: ContentItem) =>
                 isSameDay(new Date(item.publishDate), day),
               );
               const isCurrentMonth = isSameMonth(day, monthStart);
@@ -232,7 +338,7 @@ export default function ConteudoPage() {
                   </div>
 
                   <div className="space-y-1 overflow-y-auto max-h-[calc(100%-24px)] scrollbar-hide">
-                    {dayItems.map((item) => {
+                    {dayItems.map((item: ContentItem) => {
                       const Icon = platformIcons[item.platform] || FileText;
                       return (
                         <motion.div
@@ -297,7 +403,7 @@ export default function ConteudoPage() {
                     <SelectValue placeholder="Selecione o cliente" />
                   </SelectTrigger>
                   <SelectContent>
-                    {clients.map((client) => (
+                    {clients.map((client: Client) => (
                       <SelectItem key={client.id} value={client.id}>
                         {client.name}
                       </SelectItem>
@@ -397,7 +503,7 @@ export default function ConteudoPage() {
                     <SelectValue placeholder="Selecione o responsável" />
                   </SelectTrigger>
                   <SelectContent>
-                    {teamMembers.map((member) => (
+                    {teamMembers.map((member: User) => (
                       <SelectItem key={member.id} value={member.id}>
                         {member.name}
                       </SelectItem>

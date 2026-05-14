@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppShell } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,7 @@ import {
   Target,
   Zap,
   Calendar as CalendarIcon,
+  Loader2,
 } from "lucide-react";
 
 import {
@@ -43,30 +44,69 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 
-import {
-  clientGrowthData,
-  channelData,
-  funnelData,
-  revenueData,
-  clients,
-  campaigns,
-} from "@/lib/seed-data";
+import type {
+  RelatoriosPayload,
+  ClientGrowthItem,
+  ChannelItem,
+  FunnelItem,
+  RevenueItem,
+  ClientReportItem,
+  KpiData,
+} from "@/app/api/relatorios/route";
 
 const COLORS = ["#5B5FE8", "#14B8A6", "#8B5CF6", "#22C55E", "#F59E0B"];
 
 export default function RelatoriosPage() {
-  const [dateRange, setDateRange] = useState("Últimos 30 dias");
+  const [dateRange] = useState("Últimos 30 dias");
+  const [payload, setPayload] = useState<RelatoriosPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Calculate KPIs
-  const totalInvestido = channelData.reduce((acc, curr) => acc + curr.cost, 0);
-  const totalLeads = channelData.reduce((acc, curr) => acc + curr.leads, 0);
-  const totalConversoes = channelData.reduce(
-    (acc, curr) => acc + curr.conversions,
-    0,
-  );
-  const cpl = totalLeads > 0 ? totalInvestido / totalLeads : 0;
-  const taxaConversao =
-    totalLeads > 0 ? (totalConversoes / totalLeads) * 100 : 0;
+  useEffect(() => {
+    async function fetchRelatorios() {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/relatorios");
+        if (!res.ok) throw new Error(`Erro ${res.status}: ${res.statusText}`);
+        const json = await res.json();
+        setPayload(json.data as RelatoriosPayload);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Erro ao carregar relatórios");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchRelatorios();
+  }, []);
+
+  if (loading) {
+    return (
+      <AppShell title="Relatórios">
+        <div className="flex h-64 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (error || !payload) {
+    return (
+      <AppShell title="Relatórios">
+        <div className="flex h-64 flex-col items-center justify-center gap-4">
+          <p className="text-sm text-muted-foreground">
+            {error ?? "Não foi possível carregar os dados."}
+          </p>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+            Tentar novamente
+          </Button>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const { kpiData, clientGrowthData, channelData, funnelData, revenueData, clientReports } =
+    payload;
 
   return (
     <AppShell title="Relatórios">
@@ -103,27 +143,27 @@ export default function RelatoriosPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <KpiCard
             title="Total Investido"
-            value={`R$ ${totalInvestido.toLocaleString("pt-BR")}`}
-            variation={12.5}
+            value={`R$ ${kpiData.totalInvestido.toLocaleString("pt-BR")}`}
+            variation={kpiData.investidoVariacao}
             icon={Target}
           />
           <KpiCard
             title="Leads Gerados"
-            value={totalLeads.toString()}
-            variation={8.3}
+            value={kpiData.totalLeads.toString()}
+            variation={kpiData.leadsVariacao}
             icon={Users}
           />
           <KpiCard
             title="Custo por Lead (CPL)"
-            value={`R$ ${cpl.toFixed(2)}`}
-            variation={-5.2}
+            value={`R$ ${kpiData.cpl.toFixed(2)}`}
+            variation={kpiData.cplVariacao}
             icon={Zap}
             inverse
           />
           <KpiCard
             title="Taxa de Conversão"
-            value={`${taxaConversao.toFixed(1)}%`}
-            variation={2.1}
+            value={`${kpiData.taxaConversao.toFixed(1)}%`}
+            variation={kpiData.taxaConversaoVariacao}
             icon={TrendingUp}
           />
         </div>
@@ -131,360 +171,26 @@ export default function RelatoriosPage() {
         {/* Charts Grid */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Client Growth Chart */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">
-                Crescimento de Clientes
-              </CardTitle>
-              <CardDescription>
-                Evolução da base de clientes ativos
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={clientGrowthData}>
-                    <defs>
-                      <linearGradient
-                        id="colorClients"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="#5B5FE8"
-                          stopOpacity={0.3}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="#5B5FE8"
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      stroke="rgba(255,255,255,0.05)"
-                    />
-                    <XAxis
-                      dataKey="month"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "var(--card)",
-                        borderColor: "var(--border)",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="clients"
-                      stroke="#5B5FE8"
-                      strokeWidth={2}
-                      fillOpacity={1}
-                      fill="url(#colorClients)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+          <ClientGrowthChart data={clientGrowthData} />
 
           {/* Channel Performance Chart */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">
-                Performance por Canal
-              </CardTitle>
-              <CardDescription>
-                Leads e conversões por plataforma
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={channelData}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      stroke="rgba(255,255,255,0.05)"
-                    />
-                    <XAxis
-                      dataKey="channel"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "var(--card)",
-                        borderColor: "var(--border)",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Legend
-                      iconType="circle"
-                      wrapperStyle={{ fontSize: "12px", paddingTop: "20px" }}
-                    />
-                    <Bar
-                      dataKey="leads"
-                      name="Leads"
-                      fill="#5B5FE8"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="conversions"
-                      name="Conversões"
-                      fill="#14B8A6"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+          <ChannelPerformanceChart data={channelData} />
 
           {/* Funnel Distribution Chart */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">
-                Distribuição do Funil
-              </CardTitle>
-              <CardDescription>
-                Volume de leads por etapa do pipeline
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center">
-              <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={funnelData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {funnelData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "var(--card)",
-                        borderColor: "var(--border)",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Legend
-                      iconType="circle"
-                      layout="vertical"
-                      align="right"
-                      verticalAlign="middle"
-                      wrapperStyle={{ fontSize: "12px" }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+          <FunnelDistributionChart data={funnelData} />
 
           {/* Revenue vs Previous Chart */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">
-                Faturamento Mensal
-              </CardTitle>
-              <CardDescription>
-                Comparativo de faturamento mês a mês
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={revenueData}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      stroke="rgba(255,255,255,0.05)"
-                    />
-                    <XAxis
-                      dataKey="month"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "var(--card)",
-                        borderColor: "var(--border)",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Legend
-                      iconType="circle"
-                      wrapperStyle={{ fontSize: "12px", paddingTop: "20px" }}
-                    />
-                    <Bar
-                      dataKey="value"
-                      name="Atual"
-                      fill="#5B5FE8"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="previous"
-                      name="Anterior"
-                      stroke="#F59E0B"
-                      strokeWidth={2}
-                      dot={{ r: 4 }}
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+          <RevenueChart data={revenueData} />
         </div>
 
         {/* Client Report Table */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">
-              Relatório por Cliente
-            </CardTitle>
-            <CardDescription>
-              Detalhamento de performance individual
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border bg-secondary/30">
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Cliente
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Campanha Ativa
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Leads
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Taxa Conv.
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      ROI Estimado
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/50">
-                  {clients.slice(0, 6).map((client) => {
-                    const activeCampaign = campaigns.find(
-                      (c) => c.client.id === client.id && c.status === "Ativa",
-                    );
-                    const leads = activeCampaign
-                      ? activeCampaign.metrics.conversions
-                      : 0;
-                    const convRate = activeCampaign
-                      ? activeCampaign.metrics.ctr
-                      : 0;
-                    const roi = activeCampaign
-                      ? (activeCampaign.metrics.conversions * 150) /
-                        activeCampaign.budget.spent
-                      : 0;
-
-                    return (
-                      <tr
-                        key={client.id}
-                        className="hover:bg-primary/5 transition-colors"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
-                              {client.name[0]}
-                            </div>
-                            <span className="text-sm font-medium text-foreground">
-                              {client.name}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-muted-foreground">
-                            {activeCampaign?.name || "Nenhuma"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-foreground font-medium">
-                            {leads}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-foreground">
-                            {convRate}%
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-success font-medium">
-                            {roi > 0 ? `${roi.toFixed(1)}x` : "-"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-[10px] px-2 py-0",
-                              client.status === "Ativo"
-                                ? "bg-success/10 text-success border-success/20"
-                                : client.status === "Em risco"
-                                  ? "bg-warning/10 text-warning border-warning/20"
-                                  : "bg-muted text-muted-foreground",
-                            )}
-                          >
-                            {client.status}
-                          </Badge>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <ClientReportTable reports={clientReports} />
       </div>
     </AppShell>
   );
 }
+
+// ── KPI Card ──────────────────────────────────────────────────────────────────
 
 function KpiCard({
   title,
@@ -508,42 +214,332 @@ function KpiCard({
         <div className="flex items-start justify-between">
           <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="font-heading text-2xl font-bold text-foreground">
-              {value}
-            </p>
+            <p className="font-heading text-2xl font-bold text-foreground">{value}</p>
             <div className="flex items-center gap-1">
               {isPositive ? (
                 <TrendingUp
-                  className={cn(
-                    "h-4 w-4",
-                    isGood ? "text-success" : "text-danger",
-                  )}
+                  className={cn("h-4 w-4", isGood ? "text-success" : "text-danger")}
                 />
               ) : (
                 <TrendingUp
-                  className={cn(
-                    "h-4 w-4 rotate-180",
-                    isGood ? "text-success" : "text-danger",
-                  )}
+                  className={cn("h-4 w-4 rotate-180", isGood ? "text-success" : "text-danger")}
                 />
               )}
               <span
-                className={cn(
-                  "text-sm font-medium",
-                  isGood ? "text-success" : "text-danger",
-                )}
+                className={cn("text-sm font-medium", isGood ? "text-success" : "text-danger")}
               >
                 {isPositive ? "+" : ""}
                 {variation}%
               </span>
-              <span className="text-xs text-muted-foreground ml-1">
-                vs mês anterior
-              </span>
+              <span className="text-xs text-muted-foreground ml-1">vs mês anterior</span>
             </div>
           </div>
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
             <Icon className="h-5 w-5 text-primary" />
           </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Charts ────────────────────────────────────────────────────────────────────
+
+function ClientGrowthChart({ data }: { data: ClientGrowthItem[] }) {
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader>
+        <CardTitle className="text-base font-semibold">Crescimento de Clientes</CardTitle>
+        <CardDescription>Evolução da base de clientes ativos</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[300px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data}>
+              <defs>
+                <linearGradient id="colorClients" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#5B5FE8" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#5B5FE8" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="rgba(255,255,255,0.05)"
+              />
+              <XAxis
+                dataKey="month"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "var(--card)",
+                  borderColor: "var(--border)",
+                  borderRadius: "8px",
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="clients"
+                stroke="#5B5FE8"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorClients)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ChannelPerformanceChart({ data }: { data: ChannelItem[] }) {
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader>
+        <CardTitle className="text-base font-semibold">Performance por Canal</CardTitle>
+        <CardDescription>Leads e conversões por plataforma</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[300px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data}>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="rgba(255,255,255,0.05)"
+              />
+              <XAxis
+                dataKey="channel"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "var(--card)",
+                  borderColor: "var(--border)",
+                  borderRadius: "8px",
+                }}
+              />
+              <Legend
+                iconType="circle"
+                wrapperStyle={{ fontSize: "12px", paddingTop: "20px" }}
+              />
+              <Bar dataKey="leads" name="Leads" fill="#5B5FE8" radius={[4, 4, 0, 0]} />
+              <Bar
+                dataKey="conversions"
+                name="Conversões"
+                fill="#14B8A6"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function FunnelDistributionChart({ data }: { data: FunnelItem[] }) {
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader>
+        <CardTitle className="text-base font-semibold">Distribuição do Funil</CardTitle>
+        <CardDescription>Volume de leads por etapa do pipeline</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center justify-center">
+        <div className="h-[300px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={100}
+                paddingAngle={5}
+                dataKey="value"
+              >
+                {data.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "var(--card)",
+                  borderColor: "var(--border)",
+                  borderRadius: "8px",
+                }}
+              />
+              <Legend
+                iconType="circle"
+                layout="vertical"
+                align="right"
+                verticalAlign="middle"
+                wrapperStyle={{ fontSize: "12px" }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function RevenueChart({ data }: { data: RevenueItem[] }) {
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader>
+        <CardTitle className="text-base font-semibold">Faturamento Mensal</CardTitle>
+        <CardDescription>Comparativo de faturamento mês a mês</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[300px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={data}>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="rgba(255,255,255,0.05)"
+              />
+              <XAxis
+                dataKey="month"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "var(--card)",
+                  borderColor: "var(--border)",
+                  borderRadius: "8px",
+                }}
+              />
+              <Legend
+                iconType="circle"
+                wrapperStyle={{ fontSize: "12px", paddingTop: "20px" }}
+              />
+              <Bar dataKey="value" name="Atual" fill="#5B5FE8" radius={[4, 4, 0, 0]} />
+              <Line
+                type="monotone"
+                dataKey="previous"
+                name="Anterior"
+                stroke="#F59E0B"
+                strokeWidth={2}
+                dot={{ r: 4 }}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Client Report Table ───────────────────────────────────────────────────────
+
+function ClientReportTable({ reports }: { reports: ClientReportItem[] }) {
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader>
+        <CardTitle className="text-base font-semibold">Relatório por Cliente</CardTitle>
+        <CardDescription>Detalhamento de performance individual</CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border bg-secondary/30">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Cliente
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Campanha Ativa
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Leads
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Taxa Conv.
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  ROI Estimado
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/50">
+              {reports.map((report) => (
+                <tr
+                  key={report.id}
+                  className="hover:bg-primary/5 transition-colors"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                        {report.name[0]}
+                      </div>
+                      <span className="text-sm font-medium text-foreground">
+                        {report.name}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-sm text-muted-foreground">
+                      {report.activeCampaign ?? "Nenhuma"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-sm font-medium text-foreground">{report.leads}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-sm text-foreground">{report.convRate}%</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-sm font-medium text-success">
+                      {report.roi > 0 ? `${report.roi}x` : "-"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-[10px] px-2 py-0",
+                        report.status === "Ativo"
+                          ? "bg-success/10 text-success border-success/20"
+                          : report.status === "Em risco"
+                            ? "bg-warning/10 text-warning border-warning/20"
+                            : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {report.status}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </CardContent>
     </Card>

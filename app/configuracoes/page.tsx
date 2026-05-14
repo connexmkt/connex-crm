@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { AppShell } from "@/components/layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { teamMembers } from "@/lib/seed-data";
+import type { User } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 import {
@@ -35,6 +36,15 @@ import {
 } from "lucide-react";
 
 export default function ConfiguracoesPage() {
+  const [teamMembers, setTeamMembers] = useState<User[]>([]);
+
+  useEffect(() => {
+    fetch("/api/team")
+      .then((r) => r.ok ? r.json() : Promise.reject(r.statusText))
+      .then((json) => setTeamMembers(json.data as User[]))
+      .catch((err) => console.error("[configuracoes] falha ao carregar time:", err));
+  }, []);
+
   return (
     <AppShell title="Configurações">
       <div className="max-w-5xl">
@@ -220,7 +230,7 @@ export default function ConfiguracoesPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/50">
-                      {teamMembers.map((member) => (
+                      {teamMembers.map((member: User) => (
                         <tr
                           key={member.id}
                           className="hover:bg-secondary/20 transition-colors"
@@ -235,7 +245,7 @@ export default function ConfiguracoesPage() {
                                 <AvatarFallback className="bg-primary/10 text-xs text-primary">
                                   {member.name
                                     .split(" ")
-                                    .map((n) => n[0])
+                                    .map((n: string) => n[0])
                                     .join("")}
                                 </AvatarFallback>
                               </Avatar>
@@ -512,7 +522,6 @@ export default function ConfiguracoesPage() {
 function IntegrationCard({
   name,
   description,
-  icon,
   connected,
 }: {
   name: string;

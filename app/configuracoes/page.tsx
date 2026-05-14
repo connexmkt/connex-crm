@@ -49,7 +49,7 @@ export default function ConfiguracoesPage() {
     <AppShell title="Configurações">
       <div className="max-w-5xl mx-auto">
         <Tabs defaultValue="agencia" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 h-12 bg-secondary/30 p-1">
+          <TabsList className="grid w-full grid-cols-4 h-12 bg-secondary/30 p-1">
             <TabsTrigger value="agencia" className="gap-2 text-xs sm:text-sm">
               <Building2 className="h-4 w-4" />
               <span className="hidden sm:inline">Agência</span>
@@ -71,10 +71,6 @@ export default function ConfiguracoesPage() {
             >
               <Bell className="h-4 w-4" />
               <span className="hidden sm:inline">Notificações</span>
-            </TabsTrigger>
-            <TabsTrigger value="plano" className="gap-2 text-xs sm:text-sm">
-              <CreditCard className="h-4 w-4" />
-              <span className="hidden sm:inline">Plano</span>
             </TabsTrigger>
           </TabsList>
 
@@ -393,124 +389,6 @@ export default function ConfiguracoesPage() {
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
-          </TabsContent>
-
-          {/* Plano Tab */}
-          <TabsContent value="plano">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-6"
-            >
-              <Card className="bg-card border-border overflow-hidden">
-                <div className="bg-primary/5 p-8 border-b border-border">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="space-y-1">
-                      <Badge className="bg-primary text-primary-foreground">
-                        Plano Atual
-                      </Badge>
-                      <h2 className="text-2xl font-bold">Connex Pro</h2>
-                      <p className="text-muted-foreground">
-                        Sua assinatura renova em 15 de Junho, 2025
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-3xl font-bold">
-                        R$ 499
-                        <span className="text-sm font-normal text-muted-foreground">
-                          /mês
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <CardContent className="p-8 space-y-8">
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <Users className="h-4 w-4 text-primary" />
-                        Usuários
-                      </div>
-                      <p className="text-2xl font-bold">12 / 20</p>
-                      <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                        <div className="h-full bg-primary w-[60%]" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <Building2 className="h-4 w-4 text-primary" />
-                        Clientes
-                      </div>
-                      <p className="text-2xl font-bold">45 / 100</p>
-                      <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                        <div className="h-full bg-primary w-[45%]" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <Smartphone className="h-4 w-4 text-primary" />
-                        Integrações
-                      </div>
-                      <p className="text-2xl font-bold">8 / Ilimitado</p>
-                      <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                        <div className="h-full bg-primary w-[30%]" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pt-6 border-t border-border">
-                    <div className="flex items-center gap-4">
-                      <Button variant="outline">Gerenciar Faturas</Button>
-                      <Button variant="outline">Alterar Cartão</Button>
-                    </div>
-                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
-                      Fazer Upgrade para Enterprise
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <Card className="bg-card border-border">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Shield className="h-4 w-4 text-success" />
-                      Segurança
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Seus dados estão protegidos com criptografia de ponta a
-                      ponta e backups diários.
-                    </p>
-                    <Button
-                      variant="link"
-                      className="p-0 h-auto text-primary gap-1"
-                    >
-                      Ver política de privacidade{" "}
-                      <ExternalLink className="h-3 w-3" />
-                    </Button>
-                  </CardContent>
-                </Card>
-                <Card className="bg-card border-border">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Globe className="h-4 w-4 text-primary" />
-                      Domínio Customizado
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Acesse o CRM através do seu próprio subdomínio (ex:
-                      crm.suaagencia.com.br).
-                    </p>
-                    <Button variant="outline" size="sm">
-                      Configurar Domínio
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
             </motion.div>
           </TabsContent>
         </Tabs>

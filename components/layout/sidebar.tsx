@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -70,13 +71,26 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         initial={false}
         animate={{ width: collapsed ? 64 : 240 }}
         transition={{ duration: 0.2, ease: "easeInOut" }}
-        className="fixed left-0 top-0 z-40 flex h-screen flex-col bg-sidebar-bg"
+        className="fixed left-0 top-0 z-40 flex h-screen flex-col bg-sidebar-bg border-r border-sidebar-border"
       >
         {/* Logo */}
         <div className="flex h-16 items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary font-heading text-lg font-bold text-primary-foreground">
-              N
+          <Link href="/" className="flex items-center gap-2">
+            <div className="relative h-8 w-8 shrink-0">
+              <Image
+                src="/claro.jpeg"
+                alt="Connex"
+                fill
+                className="rounded-lg object-contain dark:hidden"
+                priority
+              />
+              <Image
+                src="/escuro.jpeg"
+                alt="Connex"
+                fill
+                className="hidden rounded-lg object-contain dark:block"
+                priority
+              />
             </div>
             <AnimatePresence>
               {!collapsed && (
@@ -95,7 +109,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             variant="ghost"
             size="icon"
             onClick={onToggle}
-            className="h-8 w-8 text-sidebar-text hover:bg-white/10 hover:text-sidebar-text-active"
+            className="h-8 w-8 text-sidebar-text hover:bg-sidebar-item-hover hover:text-sidebar-text-active"
           >
             {collapsed ? (
               <ChevronRight className="h-4 w-4" />
@@ -118,7 +132,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   isActive
                     ? "bg-primary/20 text-sidebar-text-active"
-                    : "text-sidebar-text hover:bg-white/5 hover:text-sidebar-text-active",
+                    : "text-sidebar-text hover:bg-sidebar-item-hover hover:text-sidebar-text-active",
                 )}
               >
                 {/* Active indicator */}
@@ -167,7 +181,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </nav>
 
         {/* User section */}
-        <div className="border-t border-white/10 p-4">
+        <div className="border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3">
             <Avatar className="h-9 w-9 shrink-0">
               {currentUser ? (
@@ -184,7 +198,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   </AvatarFallback>
                 </>
               ) : (
-                <AvatarFallback className="bg-white/10" />
+                  <AvatarFallback className="bg-sidebar-skeleton" />
               )}
             </Avatar>
             <AnimatePresence>
@@ -206,8 +220,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     </div>
                   ) : (
                     <div className="min-w-0 space-y-1.5">
-                      <div className="h-3 w-24 animate-pulse rounded bg-white/10" />
-                      <div className="h-2 w-14 animate-pulse rounded bg-white/10" />
+                      <div className="h-3 w-24 animate-pulse rounded bg-sidebar-skeleton" />
+                      <div className="h-2 w-14 animate-pulse rounded bg-sidebar-skeleton" />
                     </div>
                   )}
                   <Tooltip>
@@ -216,7 +230,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                         variant="ghost"
                         size="icon"
                         onClick={handleLogout}
-                        className="h-8 w-8 shrink-0 text-sidebar-text hover:bg-white/10 hover:text-sidebar-text-active"
+                        className="h-8 w-8 shrink-0 text-sidebar-text hover:bg-sidebar-item-hover hover:text-sidebar-text-active"
                       >
                         <LogOut className="h-4 w-4" />
                       </Button>

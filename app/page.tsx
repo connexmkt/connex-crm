@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { DashboardPayload } from "@/app/api/dashboard/route";
+import { NovaTarefaDialog } from "@/components/tasks/nova-tarefa-dialog";
+import { toast } from "sonner";
 
 import {
   BarChart,
@@ -32,10 +35,6 @@ import {
   Phone,
   Trash2,
 } from "lucide-react";
-
-import type { DashboardPayload } from "@/app/api/dashboard/route";
-import { NovaTarefaDialog } from "@/components/tasks/nova-tarefa-dialog";
-import { toast } from "sonner";
 
 // ── Tipos locais ──────────────────────────────────────────────────────────────
 
@@ -579,8 +578,7 @@ export default function DashboardPage() {
                 <div className="space-y-3">
                   {atRiskClients.map((client) => {
                     const daysSince = Math.floor(
-                      (Date.now() -
-                        new Date(client.lastActivity).getTime()) /
+                      (Date.now() - new Date(client.lastActivity).getTime()) /
                         86_400_000,
                     );
                     return (

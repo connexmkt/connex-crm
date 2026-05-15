@@ -14,9 +14,14 @@ Build and maintain front-end pages and components for Connex CRM using Next.js 1
 TypeScript 5.7, Next.js 16.2 App Router, Tailwind CSS v4, Radix UI + shadcn/ui, Framer Motion, Recharts, React Hook Form + Zod, `@dnd-kit/core`, Lucide React, pnpm 11
 
 ## File Structure
-app/                        – Pages (all "use client")
+app/                        – Pages
 page.tsx                  – Dashboard
-clientes/page.tsx         – Client list and detail
+clientes/                 – Example of the module structure below
+    components/             – UI components scoped to this module
+    constants/              – Static values and enums for this module
+    hooks/                  – Data fetching and state hooks for this module
+    schemas/                – Zod schemas for forms and validation
+    page.tsx                – Page entry point
 pipeline/page.tsx         – Kanban board (dnd-kit)
 campanhas/page.tsx        – Campaign management
 conteudo/page.tsx         – Content calendar
@@ -29,8 +34,21 @@ layout/                   – AppShell, Sidebar, TopBar
 ui/                       – shadcn/ui primitives (DO NOT modify internals)
 lib/
 types.ts                  – Shared TypeScript interfaces
-seed-data.ts              – Static mock data (no backend yet)
 utils.ts                  – cn() and other helpers
+
+## Module Architecture
+
+Every new page or feature module must follow this structure:
+<module>/
+    components/   – UI components scoped to this module
+    constants/    – Static values, enums, and labels
+    hooks/        – Data fetching (fetch from /api/) and local state
+    schemas/      – Zod schemas for forms and validation
+    page.tsx      – Page entry point; composes components, delegates logic to hooks
+- `page.tsx` must stay thin — no inline data fetching or business logic
+- Data fetching belongs in `hooks/`; use server components with `fetch` to call `/api/` routes
+- Never hardcode or mock data; all data must come from the API
+- Forms use React Hook Form bound to a schema from `schemas/`
 
 ## Domain Types (`lib/types.ts`)
 
@@ -55,7 +73,6 @@ Every page is wrapped in `<AppShell title="...">`. Never render pages outside it
 - **Spacing**: `p-6` inside cards, `space-y-6` / `gap-6` between sections.
 
 ### Coding
-- All pages are `"use client"` — no server components yet
 - Use `@/` import alias throughout
 - Use `cn()` from `@/lib/utils` for all conditional class merging
 - Keep imports at the top — never inline
@@ -63,6 +80,6 @@ Every page is wrapped in `<AppShell title="...">`. Never render pages outside it
 - New UI primitives → extend `components/ui/` via the shadcn/ui CLI pattern
 
 ## Boundaries
-- ✅ **Always:** Follow existing patterns, use design tokens, keep pt-BR, wrap in `<AppShell>`
-- ⚠️ **Ask first:** New dependencies, routing changes, replacing mock data with a real API
-- 🚫 **Never:** Hardcode hex colors, change `lang` from `pt-BR`, add light-only styles, modify `components/ui/` internals. Never hardcode or mock data, always fetch from API
+- ✅ **Always:** Follow existing patterns, use design tokens, keep pt-BR, wrap in `<AppShell>`, follow module architecture
+- ⚠️ **Ask first:** New dependencies, routing changes
+- 🚫 **Never:** Hardcode hex colors, change `lang` from `pt-BR`, add light-only styles, modify `components/ui/` internals, hardcode or mock data

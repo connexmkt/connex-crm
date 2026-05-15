@@ -24,6 +24,39 @@ export interface Client {
     phone: string
     website?: string
   }
+  contractStartDate?: Date
+  contractRenewalDate?: Date
+  internalNotes?: string
+}
+
+export type ClientContatoType = 'decisor' | 'financeiro' | 'operacional' | 'outro'
+export type ClientContatoChannel = 'email' | 'whatsapp' | 'phone' | 'outro'
+
+export interface ClientContato {
+  id: string
+  clienteId: string
+  name: string
+  role: string
+  email?: string
+  whatsapp?: string
+  preferredChannel?: ClientContatoChannel
+  type: ClientContatoType
+  createdAt: Date
+}
+
+export type ClientArquivoType = 'contrato_assinado' | 'briefing' | 'proposta' | 'outro'
+
+export interface ClientArquivo {
+  id: string
+  clienteId: string
+  name: string
+  filePath: string
+  fileType: ClientArquivoType
+  fileSize?: number
+  mimeType?: string
+  uploadedBy?: string
+  createdAt: Date
+  signedUrl?: string
 }
 
 export interface Lead {

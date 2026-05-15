@@ -66,6 +66,9 @@ const createClienteSchema = z.object({
     phone: z.string().min(8),
     website: z.string().url().optional(),
   }),
+  contractStartDate: z.string().date().optional(),
+  contractRenewalDate: z.string().date().optional(),
+  internalNotes: z.string().max(5000).optional(),
 })
 
 export async function GET(request: NextRequest) {

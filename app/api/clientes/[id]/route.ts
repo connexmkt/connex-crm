@@ -65,6 +65,9 @@ const updateClienteSchema = z.object({
       website: z.string().url().optional(),
     })
     .optional(),
+  contractStartDate: z.string().date().nullable().optional(),
+  contractRenewalDate: z.string().date().nullable().optional(),
+  internalNotes: z.string().max(5000).nullable().optional(),
 });
 
 type RouteContext = { params: Promise<{ id: string }> };

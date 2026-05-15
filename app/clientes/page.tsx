@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { Activity, Campaign, Client } from "@/lib/types";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { AppShell } from "@/components/layout";
@@ -14,6 +14,18 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+
+import type {
+  Activity,
+  Campaign,
+  Client,
+  ClientContato,
+  ClientArquivo,
+  ClientContatoType,
+  ClientContatoChannel,
+  ClientArquivoType,
+} from "@/lib/types";
 
 import {
   Form,
@@ -56,6 +68,14 @@ import {
   Building2,
   DollarSign,
   Loader2,
+  MessageSquare,
+  FileText,
+  Upload,
+  Download,
+  Users,
+  Paperclip,
+  RefreshCw,
+  StickyNote,
 } from "lucide-react";
 
 import {
@@ -68,8 +88,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-import { toast } from "sonner";
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -86,12 +104,11 @@ const novoClienteSchema = z.object({
   contact: z.object({
     email: z.string().email("E-mail inválido"),
     phone: z.string().min(8, "Telefone deve ter ao menos 8 dígitos"),
-    website: z
-      .string()
-      .url("URL inválida")
-      .optional()
-      .or(z.literal("")),
+    website: z.string().url("URL inválida").optional().or(z.literal("")),
   }),
+  contractStartDate: z.string().optional().or(z.literal("")),
+  contractRenewalDate: z.string().optional().or(z.literal("")),
+  internalNotes: z.string().max(5000).optional(),
 });
 
 type NovoClienteForm = z.infer<typeof novoClienteSchema>;
@@ -152,6 +169,9 @@ function ClienteFormDialog({
       plan: "",
       contractValue: 0,
       contact: { email: "", phone: "", website: "" },
+      contractStartDate: "",
+      contractRenewalDate: "",
+      internalNotes: "",
     },
   });
 
@@ -168,6 +188,15 @@ function ClienteFormDialog({
           phone: initialData.contact.phone,
           website: initialData.contact.website || "",
         },
+        contractStartDate: initialData.contractStartDate
+          ? new Date(initialData.contractStartDate).toISOString().split("T")[0]
+          : "",
+        contractRenewalDate: initialData.contractRenewalDate
+          ? new Date(initialData.contractRenewalDate)
+              .toISOString()
+              .split("T")[0]
+          : "",
+        internalNotes: initialData.internalNotes || "",
       });
     } else if (open && mode === "create") {
       form.reset({
@@ -177,6 +206,9 @@ function ClienteFormDialog({
         plan: "",
         contractValue: 0,
         contact: { email: "", phone: "", website: "" },
+        contractStartDate: "",
+        contractRenewalDate: "",
+        internalNotes: "",
       });
     }
   }, [open, mode, initialData, form]);
@@ -189,7 +221,9 @@ function ClienteFormDialog({
     setIsSubmitting(true);
     try {
       const url =
-        mode === "create" ? "/api/clientes" : `/api/clientes/${initialData?.id}`;
+        mode === "create"
+          ? "/api/clientes"
+          : `/api/clientes/${initialData?.id}`;
       const method = mode === "create" ? "POST" : "PUT";
 
       const res = await fetch(url, {
@@ -201,6 +235,9 @@ function ClienteFormDialog({
             ...values.contact,
             website: values.contact.website || undefined,
           },
+          contractStartDate: values.contractStartDate || undefined,
+          contractRenewalDate: values.contractRenewalDate || undefined,
+          internalNotes: values.internalNotes || undefined,
         }),
       });
 
@@ -281,10 +318,7 @@ function ClienteFormDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecionar" />
@@ -402,6 +436,64 @@ function ClienteFormDialog({
               </div>
             </div>
 
+            <div className="pt-1">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Contrato
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <FormField
+                  control={form.control}
+                  name="contractStartDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data de início</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="contractRenewalDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Data de renovação</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <FormField
+              control={form.control}
+              name="internalNotes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    Observações internas{" "}
+                    <span className="text-muted-foreground font-normal">
+                      (opcional)
+                    </span>
+                  </FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Anotações internas sobre o cliente..."
+                      rows={3}
+                      className="resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <DialogFooter className="pt-2">
               <Button
                 type="button"
@@ -435,48 +527,939 @@ function ClienteFormDialog({
   );
 }
 
+// ─── Type label maps ─────────────────────────────────────────────────────────
+
+const contatoTypeLabels: Record<ClientContatoType, string> = {
+  decisor: "Decisor",
+  financeiro: "Financeiro",
+  operacional: "Operacional",
+  outro: "Outro",
+};
+
+const contatoChannelLabels: Record<ClientContatoChannel, string> = {
+  email: "E-mail",
+  whatsapp: "WhatsApp",
+  phone: "Telefone",
+  outro: "Outro",
+};
+
+const arquivoTypeLabels: Record<ClientArquivoType, string> = {
+  contrato_assinado: "Contrato Assinado",
+  briefing: "Briefing",
+  proposta: "Proposta",
+  outro: "Outro",
+};
+
+// ─── Contatos Tab ─────────────────────────────────────────────────────────────
+
+const contatoSchema = z.object({
+  name: z.string().min(1, "Nome é obrigatório").max(100),
+  role: z.string().min(1, "Cargo é obrigatório").max(100),
+  type: z.enum(["decisor", "financeiro", "operacional", "outro"], {
+    required_error: "Selecione o tipo",
+  }),
+  email: z.string().email("E-mail inválido").optional().or(z.literal("")),
+  whatsapp: z
+    .string()
+    .min(8, "WhatsApp deve ter ao menos 8 dígitos")
+    .optional()
+    .or(z.literal("")),
+  preferredChannel: z.enum(["email", "whatsapp", "phone", "outro"]).optional(),
+});
+
+type ContatoForm = z.infer<typeof contatoSchema>;
+
+function ContatoFormDialog({
+  open,
+  onOpenChange,
+  clienteId,
+  onSuccess,
+  mode,
+  initialData,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  clienteId: string;
+  onSuccess: (contato: ClientContato) => void;
+  mode: "create" | "edit";
+  initialData?: ClientContato;
+}) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm<ContatoForm>({
+    resolver: zodResolver(contatoSchema),
+    defaultValues: {
+      name: "",
+      role: "",
+      type: "decisor",
+      email: "",
+      whatsapp: "",
+      preferredChannel: undefined,
+    },
+  });
+
+  useEffect(() => {
+    if (open && mode === "edit" && initialData) {
+      form.reset({
+        name: initialData.name,
+        role: initialData.role,
+        type: initialData.type,
+        email: initialData.email || "",
+        whatsapp: initialData.whatsapp || "",
+        preferredChannel: initialData.preferredChannel,
+      });
+    } else if (open && mode === "create") {
+      form.reset({
+        name: "",
+        role: "",
+        type: "decisor",
+        email: "",
+        whatsapp: "",
+        preferredChannel: undefined,
+      });
+    }
+  }, [open, mode, initialData, form]);
+
+  const onSubmit = async (values: ContatoForm) => {
+    setIsSubmitting(true);
+    try {
+      const url =
+        mode === "create"
+          ? `/api/clientes/${clienteId}/contatos`
+          : `/api/clientes/${clienteId}/contatos/${initialData?.id}`;
+      const method = mode === "create" ? "POST" : "PUT";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...values,
+          email: values.email || undefined,
+          whatsapp: values.whatsapp || undefined,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(
+          json?.details?.formErrors?.[0] ??
+            json?.error ??
+            "Erro ao salvar contato",
+        );
+        return;
+      }
+
+      toast.success(
+        `Contato "${values.name}" ${mode === "create" ? "adicionado" : "atualizado"} com sucesso!`,
+      );
+      onSuccess(json.data as ClientContato);
+      onOpenChange(false);
+    } catch {
+      toast.error("Erro de conexão. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-heading text-base">
+            {mode === "create" ? "Novo Contato" : "Editar Contato"}
+          </DialogTitle>
+        </DialogHeader>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-3 py-1"
+          >
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nome</FormLabel>
+                    <FormControl>
+                      <Input placeholder="João Silva" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cargo</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Diretor" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="decisor">Decisor</SelectItem>
+                        <SelectItem value="financeiro">Financeiro</SelectItem>
+                        <SelectItem value="operacional">Operacional</SelectItem>
+                        <SelectItem value="outro">Outro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="preferredChannel"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Canal preferido</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value ?? ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="email">E-mail</SelectItem>
+                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                        <SelectItem value="phone">Telefone</SelectItem>
+                        <SelectItem value="outro">Outro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    E-mail{" "}
+                    <span className="text-muted-foreground font-normal">
+                      (opcional)
+                    </span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="email"
+                      placeholder="joao@empresa.com"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="whatsapp"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    WhatsApp{" "}
+                    <span className="text-muted-foreground font-normal">
+                      (opcional)
+                    </span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input placeholder="(11) 99999-9999" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <DialogFooter className="pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Salvando...
+                  </>
+                ) : mode === "create" ? (
+                  "Adicionar"
+                ) : (
+                  "Salvar"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ContatosTab({ clienteId }: { clienteId: string }) {
+  const [contatos, setContatos] = useState<ClientContato[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<ClientContato | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ClientContato | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const fetchContatos = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/clientes/${clienteId}/contatos`);
+      if (!res.ok) throw new Error();
+      const json = await res.json();
+      setContatos(json.data ?? []);
+    } catch {
+      toast.error("Falha ao carregar contatos");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [clienteId]);
+
+  useEffect(() => {
+    fetchContatos();
+  }, [fetchContatos]);
+
+  const handleSuccess = (contato: ClientContato) => {
+    if (editTarget) {
+      setContatos((prev) =>
+        prev.map((c) => (c.id === contato.id ? contato : c)),
+      );
+    } else {
+      setContatos((prev) => [contato, ...prev]);
+    }
+    setEditTarget(null);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(
+        `/api/clientes/${clienteId}/contatos/${deleteTarget.id}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) throw new Error();
+      setContatos((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+      toast.success("Contato removido");
+    } catch {
+      toast.error("Falha ao remover contato");
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  const contatoTypeColors: Record<ClientContatoType, string> = {
+    decisor: "bg-primary/10 text-primary border-primary/20",
+    financeiro: "bg-success/10 text-success border-success/20",
+    operacional: "bg-warning/10 text-warning border-warning/20",
+    outro: "bg-muted text-muted-foreground border-border",
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Contatos do cliente
+        </h3>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 gap-1.5 text-xs"
+          onClick={() => {
+            setEditTarget(null);
+            setFormOpen(true);
+          }}
+        >
+          <Plus className="h-3 w-3" /> Adicionar
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : contatos.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-8 text-center">
+          <Users className="h-8 w-8 text-muted-foreground/30" />
+          <p className="mt-2 text-sm text-muted-foreground">
+            Nenhum contato cadastrado
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {contatos.map((contato) => (
+            <motion.div
+              key={contato.id}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-lg border border-border bg-secondary/20 p-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">
+                      {contato.name}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-[10px] px-1.5 py-0",
+                        contatoTypeColors[contato.type],
+                      )}
+                    >
+                      {contatoTypeLabels[contato.type]}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {contato.role}
+                  </p>
+                  <div className="mt-1.5 flex flex-col gap-1">
+                    {contato.email && (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Mail className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{contato.email}</span>
+                      </div>
+                    )}
+                    {contato.whatsapp && (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <MessageSquare className="h-3 w-3 shrink-0" />
+                        <span>{contato.whatsapp}</span>
+                      </div>
+                    )}
+                    {contato.preferredChannel && (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <span className="text-[10px] uppercase tracking-wider">
+                          Canal:
+                        </span>
+                        <span>
+                          {contatoChannelLabels[contato.preferredChannel]}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    aria-label="Editar contato"
+                    onClick={() => {
+                      setEditTarget(contato);
+                      setFormOpen(true);
+                    }}
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-danger hover:bg-danger/10 hover:text-danger"
+                    aria-label="Excluir contato"
+                    onClick={() => setDeleteTarget(contato)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      <ContatoFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        clienteId={clienteId}
+        onSuccess={handleSuccess}
+        mode={editTarget ? "edit" : "create"}
+        initialData={editTarget ?? undefined}
+      />
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover contato?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O contato <strong>{deleteTarget?.name}</strong> será removido
+              permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-danger text-white hover:bg-danger/90"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+// ─── Arquivos Tab ─────────────────────────────────────────────────────────────
+
+function ArquivosTab({ clienteId }: { clienteId: string }) {
+  const [arquivos, setArquivos] = useState<ClientArquivo[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ClientArquivo | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+
+  const [uploadName, setUploadName] = useState("");
+  const [uploadType, setUploadType] = useState<ClientArquivoType>("outro");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const uploadInputId = useRef(`upload-${clienteId}`);
+
+  const fetchArquivos = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/clientes/${clienteId}/arquivos`);
+      if (!res.ok) throw new Error();
+      const json = await res.json();
+      setArquivos(json.data ?? []);
+    } catch {
+      toast.error("Falha ao carregar arquivos");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [clienteId]);
+
+  useEffect(() => {
+    fetchArquivos();
+  }, [fetchArquivos]);
+
+  const handleUpload = async () => {
+    if (!uploadFile || !uploadName.trim()) {
+      toast.error("Selecione um arquivo e informe o nome");
+      return;
+    }
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", uploadFile);
+      formData.append("name", uploadName.trim());
+      formData.append("fileType", uploadType);
+
+      const res = await fetch(`/api/clientes/${clienteId}/arquivos`, {
+        method: "POST",
+        body: formData,
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json?.error ?? "Erro ao fazer upload");
+        return;
+      }
+      setArquivos((prev) => [json.data as ClientArquivo, ...prev]);
+      toast.success(`"${uploadName}" enviado com sucesso!`);
+      setUploadOpen(false);
+      setUploadName("");
+      setUploadType("outro");
+      setUploadFile(null);
+    } catch {
+      toast.error("Erro de conexão. Tente novamente.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(
+        `/api/clientes/${clienteId}/arquivos/${deleteTarget.id}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) throw new Error();
+      setArquivos((prev) => prev.filter((a) => a.id !== deleteTarget.id));
+      toast.success("Arquivo removido");
+    } catch {
+      toast.error("Falha ao remover arquivo");
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  const formatBytes = (bytes?: number) => {
+    if (!bytes) return "";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const arquivoTypeColors: Record<ClientArquivoType, string> = {
+    contrato_assinado: "bg-success/10 text-success border-success/20",
+    proposta: "bg-primary/10 text-primary border-primary/20",
+    briefing: "bg-warning/10 text-warning border-warning/20",
+    outro: "bg-muted text-muted-foreground border-border",
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Arquivos anexos
+        </h3>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 gap-1.5 text-xs"
+          onClick={() => setUploadOpen(true)}
+        >
+          <Upload className="h-3 w-3" /> Enviar
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : arquivos.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-8 text-center">
+          <Paperclip className="h-8 w-8 text-muted-foreground/30" />
+          <p className="mt-2 text-sm text-muted-foreground">
+            Nenhum arquivo anexado
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {arquivos.map((arquivo) => (
+            <motion.div
+              key={arquivo.id}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-3 rounded-lg border border-border bg-secondary/20 p-3"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+                <FileText className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="truncate text-sm font-medium text-foreground">
+                    {arquivo.name}
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-[10px] px-1.5 py-0",
+                      arquivoTypeColors[arquivo.fileType],
+                    )}
+                  >
+                    {arquivoTypeLabels[arquivo.fileType]}
+                  </Badge>
+                </div>
+                <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                  {arquivo.fileSize && (
+                    <span>{formatBytes(arquivo.fileSize)}</span>
+                  )}
+                  <span>
+                    {new Date(arquivo.createdAt).toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                {arquivo.signedUrl && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    aria-label="Baixar arquivo"
+                    asChild
+                  >
+                    <a
+                      href={arquivo.signedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </a>
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-danger hover:bg-danger/10 hover:text-danger"
+                  aria-label="Excluir arquivo"
+                  onClick={() => setDeleteTarget(arquivo)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {/* Upload Dialog */}
+      <Dialog
+        open={uploadOpen}
+        onOpenChange={(o) => {
+          if (!isUploading) {
+            setUploadOpen(o);
+            if (!o) {
+              setUploadFile(null);
+              setUploadName("");
+              setUploadType("outro");
+              setIsDragging(false);
+            }
+          }
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-base">
+              Enviar arquivo
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            {/* Drop zone via label — não precisa de ref */}
+            <div>
+              <p className="mb-1.5 text-sm font-medium text-foreground">Arquivo</p>
+              <label
+                htmlFor={uploadInputId.current}
+                className={cn(
+                  "flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-5 transition-colors",
+                  isDragging
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50 hover:bg-secondary/30",
+                )}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  const f = e.dataTransfer.files?.[0];
+                  if (f) {
+                    setUploadFile(f);
+                    if (!uploadName) setUploadName(f.name.replace(/\.[^/.]+$/, ""));
+                  }
+                }}
+              >
+                {uploadFile ? (
+                  <div className="text-center">
+                    <FileText className="mx-auto h-7 w-7 text-primary" />
+                    <p className="mt-1.5 text-sm font-medium text-foreground">{uploadFile.name}</p>
+                    <p className="text-xs text-muted-foreground">{formatBytes(uploadFile.size)}</p>
+                    <p className="mt-1 text-xs text-primary">Clique para trocar</p>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <Upload className="mx-auto h-7 w-7 text-muted-foreground" />
+                    <p className="mt-1.5 text-sm text-foreground">
+                      Arraste ou <span className="text-primary font-medium">clique para selecionar</span>
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      PDF, Word, Excel, imagens — máx. 50 MB
+                    </p>
+                  </div>
+                )}
+              </label>
+              <input
+                id={uploadInputId.current}
+                type="file"
+                className="sr-only"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) {
+                    setUploadFile(f);
+                    if (!uploadName) setUploadName(f.name.replace(/\.[^/.]+$/, ""));
+                  }
+                  e.target.value = "";
+                }}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="upload-display-name"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                Nome de exibição
+              </label>
+              <Input
+                id="upload-display-name"
+                value={uploadName}
+                onChange={(e) => setUploadName(e.target.value)}
+                placeholder="Ex: Contrato 2025"
+              />
+            </div>
+
+            <div>
+              <p className="mb-1.5 text-sm font-medium text-foreground">Tipo</p>
+              <Select
+                value={uploadType}
+                onValueChange={(v) => setUploadType(v as ClientArquivoType)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="contrato_assinado">Contrato Assinado</SelectItem>
+                  <SelectItem value="briefing">Briefing</SelectItem>
+                  <SelectItem value="proposta">Proposta</SelectItem>
+                  <SelectItem value="outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setUploadOpen(false)}
+              disabled={isUploading}
+            >
+              Cancelar
+            </Button>
+            <Button
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={handleUpload}
+              disabled={isUploading || !uploadFile}
+            >
+              {isUploading ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando...</>
+              ) : (
+                <><Upload className="mr-2 h-4 w-4" />Enviar</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover arquivo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O arquivo <strong>{deleteTarget?.name}</strong> será removido
+              permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-danger text-white hover:bg-danger/90"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
 
 // ─── Client Drawer ────────────────────────────────────────────────────────────
 
 function ClientDrawer({
   client,
   onClose,
+  onClientUpdate,
 }: {
   client: Client;
   onClose: () => void;
+  onClientUpdate?: (updated: Client) => void;
 }) {
   const allActivities: Activity[] = [];
   const allCampaigns: Campaign[] = [];
-  const clientActivities = allActivities.filter((a) => a.client?.id === client.id);
+  const clientActivities = allActivities.filter(
+    (a) => a.client?.id === client.id,
+  );
   const clientCampaigns = allCampaigns.filter((c) => c.client.id === client.id);
 
   return (
     <motion.div
-      initial={{ x: 420, opacity: 0 }}
+      initial={{ x: 440, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      exit={{ x: 420, opacity: 0 }}
+      exit={{ x: 440, opacity: 0 }}
       transition={{ type: "spring", damping: 28, stiffness: 280 }}
-      className="fixed right-0 top-0 z-50 flex h-full w-full max-w-[440px] flex-col bg-card shadow-2xl border-l border-border"
+      className="fixed right-0 top-0 z-50 flex h-full w-full max-w-[480px] flex-col bg-card shadow-2xl border-l border-border"
     >
       {/* Header */}
-      <div className="flex items-start justify-between border-b border-border p-6">
+      <div className="flex items-start justify-between border-b border-border p-5">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-2xl font-bold text-primary">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xl font-bold text-primary">
             {client.name[0]}
           </div>
           <div>
-            <h2 className="font-heading text-lg font-semibold text-foreground">
+            <h2 className="font-heading text-base font-semibold text-foreground leading-tight">
               {client.name}
             </h2>
             <p className="text-sm text-muted-foreground">{client.segment}</p>
-            <StatusBadge status={client.status} />
+            <div className="mt-1">
+              <StatusBadge status={client.status} />
+            </div>
           </div>
         </div>
         <Button
           variant="ghost"
           size="icon"
           onClick={onClose}
-          className="h-8 w-8"
+          className="h-8 w-8 shrink-0"
           aria-label="Fechar"
         >
           <X className="h-4 w-4" />
@@ -484,7 +1467,7 @@ function ClientDrawer({
       </div>
 
       {/* Contract value badge */}
-      <div className="border-b border-border px-6 py-3">
+      <div className="border-b border-border px-5 py-2.5">
         <div className="flex items-center gap-2 text-sm">
           <DollarSign className="h-4 w-4 text-success" />
           <span className="font-semibold text-foreground">
@@ -502,46 +1485,57 @@ function ClientDrawer({
         defaultValue="visao-geral"
         className="flex flex-1 flex-col overflow-hidden"
       >
-        <TabsList className="mx-6 mt-4 grid w-auto grid-cols-4">
-          <TabsTrigger value="visao-geral" className="text-xs">
-            Visão Geral
-          </TabsTrigger>
-          <TabsTrigger value="historico" className="text-xs">
-            Histórico
-          </TabsTrigger>
-          <TabsTrigger value="campanhas" className="text-xs">
-            Campanhas
-          </TabsTrigger>
-          <TabsTrigger value="notas" className="text-xs">
-            Notas
-          </TabsTrigger>
-        </TabsList>
+        <div className="border-b border-border px-5 pt-3">
+          <TabsList className="h-auto gap-0 rounded-none bg-transparent p-0">
+            {[
+              { value: "visao-geral", label: "Geral" },
+              { value: "contatos", label: "Contatos" },
+              { value: "arquivos", label: "Arquivos" },
+              { value: "historico", label: "Histórico" },
+              { value: "campanhas", label: "Campanhas" },
+            ].map((tab) => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="rounded-none border-b-2 border-transparent px-3 pb-2.5 pt-0 text-xs font-medium text-muted-foreground transition-colors data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
+              >
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {/* Visão Geral */}
           <TabsContent value="visao-geral" className="mt-0 space-y-4">
             <div className="space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Informações de Contato
+                Contato principal
               </h3>
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-foreground">
+                  <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="truncate text-foreground">
                     {client.contact.email}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <span className="text-foreground">
                     {client.contact.phone}
                   </span>
                 </div>
                 {client.contact.website && (
                   <div className="flex items-center gap-2 text-sm">
-                    <Globe className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-primary">
+                    <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <a
+                      href={client.contact.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="truncate text-primary hover:underline"
+                    >
                       {client.contact.website}
-                    </span>
+                    </a>
                   </div>
                 )}
               </div>
@@ -553,7 +1547,7 @@ function ClientDrawer({
               </h3>
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground flex items-center gap-1.5">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
                     <Building2 className="h-3.5 w-3.5" /> Segmento
                   </span>
                   <span className="font-medium text-foreground">
@@ -561,7 +1555,7 @@ function ClientDrawer({
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground flex items-center gap-1.5">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
                     <Calendar className="h-3.5 w-3.5" /> Onboarding
                   </span>
                   <span className="font-medium text-foreground">
@@ -570,13 +1564,37 @@ function ClientDrawer({
                     )}
                   </span>
                 </div>
+                {client.contractStartDate && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5" /> Início contrato
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {new Date(client.contractStartDate).toLocaleDateString(
+                        "pt-BR",
+                      )}
+                    </span>
+                  </div>
+                )}
+                {client.contractRenewalDate && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <RefreshCw className="h-3.5 w-3.5" /> Renovação
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {new Date(client.contractRenewalDate).toLocaleDateString(
+                        "pt-BR",
+                      )}
+                    </span>
+                  </div>
+                )}
                 {client.responsible && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Responsável</span>
                     <div className="flex items-center gap-2">
                       <Avatar className="h-5 w-5">
                         <AvatarImage src={client.responsible.avatar} />
-                        <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                        <AvatarFallback className="bg-primary/10 text-[9px] text-primary">
                           {client.responsible.name
                             .split(" ")
                             .map((n) => n[0])
@@ -599,8 +1617,25 @@ function ClientDrawer({
                 </div>
               </div>
             </div>
+
+            {/* Observações internas */}
+            <NotasInternasSection
+              client={client}
+              onClientUpdate={onClientUpdate}
+            />
           </TabsContent>
 
+          {/* Contatos */}
+          <TabsContent value="contatos" className="mt-0">
+            <ContatosTab clienteId={client.id} />
+          </TabsContent>
+
+          {/* Arquivos */}
+          <TabsContent value="arquivos" className="mt-0">
+            <ArquivosTab clienteId={client.id} />
+          </TabsContent>
+
+          {/* Histórico */}
           <TabsContent value="historico" className="mt-0">
             {clientActivities.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
@@ -633,6 +1668,7 @@ function ClientDrawer({
             )}
           </TabsContent>
 
+          {/* Campanhas */}
           <TabsContent value="campanhas" className="mt-0 space-y-3">
             {clientCampaigns.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
@@ -654,7 +1690,7 @@ function ClientDrawer({
                           <Badge
                             key={p}
                             variant="secondary"
-                            className="text-[10px] px-1"
+                            className="px-1 text-[10px]"
                           >
                             {p}
                           </Badge>
@@ -683,80 +1719,112 @@ function ClientDrawer({
               ))
             )}
           </TabsContent>
-
-          <TabsContent value="notas" className="mt-0">
-            <NotasTab clientId={client.id} />
-          </TabsContent>
         </div>
       </Tabs>
     </motion.div>
   );
 }
 
-function NotasTab({ clientId }: { clientId: string }) {
-  const [notes, setNotes] = useState<
-    { id: string; text: string; createdAt: Date }[]
-  >([]);
-  const [noteText, setNoteText] = useState("");
+function NotasInternasSection({
+  client,
+  onClientUpdate,
+}: {
+  client: Client;
+  onClientUpdate?: (updated: Client) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [notes, setNotes] = useState(client.internalNotes ?? "");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const addNote = () => {
-    if (!noteText.trim()) return;
-    setNotes((prev) => [
-      {
-        id: Date.now().toString(),
-        text: noteText.trim(),
-        createdAt: new Date(),
-      },
-      ...prev,
-    ]);
-    setNoteText("");
+  useEffect(() => {
+    setNotes(client.internalNotes ?? "");
+  }, [client.internalNotes]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/clientes/${client.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ internalNotes: notes }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json?.error ?? "Erro ao salvar observações");
+        return;
+      }
+      toast.success("Observações salvas");
+      onClientUpdate?.(json.data as Client);
+      setIsEditing(false);
+    } catch {
+      toast.error("Erro de conexão. Tente novamente.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  // clientId is intentionally unused here — notes are stored locally per session
-  void clientId;
-
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <textarea
-          value={noteText}
-          onChange={(e) => setNoteText(e.target.value)}
-          placeholder="Escreva uma nota sobre este cliente..."
-          className="w-full rounded-lg border border-border bg-secondary/50 p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-          rows={3}
-        />
-        <Button
-          size="sm"
-          className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-          onClick={addNote}
-          disabled={!noteText.trim()}
-        >
-          Salvar Nota
-        </Button>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <StickyNote className="h-3.5 w-3.5" /> Observações internas
+        </h3>
+        {!isEditing && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs"
+            onClick={() => setIsEditing(true)}
+          >
+            <Edit2 className="mr-1 h-3 w-3" /> Editar
+          </Button>
+        )}
       </div>
-      {notes.length === 0 ? (
-        <p className="text-center text-sm text-muted-foreground py-4">
-          Nenhuma nota ainda
+
+      {isEditing ? (
+        <div className="space-y-2">
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Escreva observações internas sobre este cliente..."
+            rows={4}
+            className="resize-none text-sm"
+            autoFocus
+          />
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => {
+                setIsEditing(false);
+                setNotes(client.internalNotes ?? "");
+              }}
+              disabled={isSaving}
+            >
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              className="h-7 bg-primary text-primary-foreground text-xs hover:bg-primary/90"
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+              ) : null}
+              Salvar
+            </Button>
+          </div>
+        </div>
+      ) : notes ? (
+        <p className="rounded-lg border border-border bg-secondary/20 p-3 text-sm text-foreground whitespace-pre-wrap">
+          {notes}
         </p>
       ) : (
-        <div className="space-y-2">
-          {notes.map((note) => (
-            <div
-              key={note.id}
-              className="rounded-lg border border-border bg-secondary/30 p-3"
-            >
-              <p className="text-sm text-foreground">{note.text}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {note.createdAt.toLocaleDateString("pt-BR", {
-                  day: "2-digit",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
-            </div>
-          ))}
-        </div>
+        <p className="text-sm text-muted-foreground italic">
+          Nenhuma observação registrada.
+        </p>
       )}
     </div>
   );
@@ -786,42 +1854,45 @@ export default function ClientesPage() {
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchClientes = useCallback(async (currentSearch: string, currentStatus: string) => {
-    // Cancel previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams({ page: "1", limit: "100" });
-      if (currentStatus !== "Todos") params.set("status", currentStatus);
-      if (currentSearch) params.set("search", currentSearch);
-
-      const res = await fetch(`/api/clientes?${params}`, {
-        signal: controller.signal
-      });
-      if (!res.ok) throw new Error("Falha ao carregar clientes");
-
-      const json = await res.json();
-      setClientList(json.data?.items ?? []);
-    } catch (err: any) {
-      if (err.name === 'AbortError') return;
-      // Fallback to empty list — toast handled by the component if needed
-      setClientList([]);
-    } finally {
-      if (!controller.signal.aborted) {
-        setIsLoading(false);
+  const fetchClientes = useCallback(
+    async (currentSearch: string, currentStatus: string) => {
+      // Cancel previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
-    }
-  }, []);
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      setIsLoading(true);
+      try {
+        const params = new URLSearchParams({ page: "1", limit: "100" });
+        if (currentStatus !== "Todos") params.set("status", currentStatus);
+        if (currentSearch) params.set("search", currentSearch);
+
+        const res = await fetch(`/api/clientes?${params}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error("Falha ao carregar clientes");
+
+        const json = await res.json();
+        setClientList(json.data?.items ?? []);
+      } catch (err: any) {
+        if (err.name === "AbortError") return;
+        // Fallback to empty list — toast handled by the component if needed
+        setClientList([]);
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     fetchClientes(debouncedSearch, statusFilter);
-    
+
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -1123,6 +2194,12 @@ export default function ClientesPage() {
             <ClientDrawer
               client={selectedClient}
               onClose={() => setSelectedClient(null)}
+              onClientUpdate={(updated) => {
+                setClientList((prev) =>
+                  prev.map((c) => (c.id === updated.id ? updated : c)),
+                );
+                setSelectedClient(updated);
+              }}
             />
           </>
         )}
@@ -1146,7 +2223,25 @@ export default function ClientesPage() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-danger text-white hover:bg-danger/90"
-              onClick={() => setDeleteTarget(null)}
+              onClick={async () => {
+                if (!deleteTarget) return;
+                try {
+                  const res = await fetch(`/api/clientes/${deleteTarget.id}`, {
+                    method: "DELETE",
+                  });
+                  if (!res.ok) throw new Error();
+                  setClientList((prev) =>
+                    prev.filter((c) => c.id !== deleteTarget.id),
+                  );
+                  if (selectedClient?.id === deleteTarget.id)
+                    setSelectedClient(null);
+                  toast.success(`Cliente "${deleteTarget.name}" excluído`);
+                } catch {
+                  toast.error("Falha ao excluir cliente. Tente novamente.");
+                } finally {
+                  setDeleteTarget(null);
+                }
+              }}
             >
               Excluir
             </AlertDialogAction>

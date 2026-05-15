@@ -19,6 +19,9 @@ interface ClientRow {
     phone: string
     website?: string
   }
+  contract_start_date: string | null
+  contract_renewal_date: string | null
+  internal_notes: string | null
   created_at: string
 }
 
@@ -37,6 +40,9 @@ function rowToClient(row: ClientRow): Client {
     onboardingDate: new Date(row.onboarding_date),
     plan: row.plan,
     contact: row.contact,
+    contractStartDate: row.contract_start_date ? new Date(row.contract_start_date) : undefined,
+    contractRenewalDate: row.contract_renewal_date ? new Date(row.contract_renewal_date) : undefined,
+    internalNotes: row.internal_notes ?? undefined,
   }
 }
 
@@ -58,6 +64,17 @@ function clientToRow(
       : new Date(input.onboardingDate).toISOString(),
     plan: input.plan,
     contact: input.contact,
+    contract_start_date: input.contractStartDate
+      ? (input.contractStartDate instanceof Date
+        ? input.contractStartDate.toISOString().split('T')[0]
+        : input.contractStartDate)
+      : null,
+    contract_renewal_date: input.contractRenewalDate
+      ? (input.contractRenewalDate instanceof Date
+        ? input.contractRenewalDate.toISOString().split('T')[0]
+        : input.contractRenewalDate)
+      : null,
+    internal_notes: input.internalNotes ?? null,
   }
 }
 
@@ -71,7 +88,14 @@ export type FindManyParams = {
 }
 
 export type InsertInput = Omit<Client, 'id'> & { responsible: User }
-export type UpdateInput = Partial<Omit<Client, 'id' | 'responsible'>> & { responsible?: User }
+export type UpdateInput = Partial<
+  Omit<Client, 'id' | 'responsible' | 'contractStartDate' | 'contractRenewalDate' | 'internalNotes'>
+> & {
+  responsible?: User
+  contractStartDate?: Date | null
+  contractRenewalDate?: Date | null
+  internalNotes?: string | null
+}
 
 // ── Repository ────────────────────────────────────────────────────────────────
 
@@ -142,6 +166,21 @@ export const ClientesRepository = {
         ? input.lastActivity.toISOString()
         : new Date(input.lastActivity).toISOString()
     }
+    if (input.contractStartDate !== undefined) {
+      patch.contract_start_date = input.contractStartDate
+        ? (input.contractStartDate instanceof Date
+          ? input.contractStartDate.toISOString().split('T')[0]
+          : input.contractStartDate)
+        : null
+    }
+    if (input.contractRenewalDate !== undefined) {
+      patch.contract_renewal_date = input.contractRenewalDate
+        ? (input.contractRenewalDate instanceof Date
+          ? input.contractRenewalDate.toISOString().split('T')[0]
+          : input.contractRenewalDate)
+        : null
+    }
+    if (input.internalNotes !== undefined) patch.internal_notes = input.internalNotes ?? null
 
     const { data, error } = await supabase
       .from('clientes')

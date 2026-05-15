@@ -20,6 +20,9 @@ export type CreateClienteInput = {
     phone: string
     website?: string
   }
+  contractStartDate?: string
+  contractRenewalDate?: string
+  internalNotes?: string
 }
 
 export type UpdateClienteInput = {
@@ -34,6 +37,9 @@ export type UpdateClienteInput = {
     phone: string
     website?: string
   }
+  contractStartDate?: string | null
+  contractRenewalDate?: string | null
+  internalNotes?: string | null
 }
 
 export const ClientesService = {
@@ -77,6 +83,9 @@ export const ClientesService = {
       contact: input.contact,
       onboardingDate: new Date(),
       lastActivity: new Date(),
+      contractStartDate: input.contractStartDate ? new Date(input.contractStartDate) : undefined,
+      contractRenewalDate: input.contractRenewalDate ? new Date(input.contractRenewalDate) : undefined,
+      internalNotes: input.internalNotes,
     }
 
     return ClientesRepository.insert(supabase, insertPayload)
@@ -95,6 +104,13 @@ export const ClientesService = {
     if (input.plan !== undefined) updatePayload.plan = input.plan
     if (input.contractValue !== undefined) updatePayload.contractValue = input.contractValue
     if (input.contact !== undefined) updatePayload.contact = input.contact
+    if (input.contractStartDate !== undefined) {
+      updatePayload.contractStartDate = input.contractStartDate ? new Date(input.contractStartDate) : null
+    }
+    if (input.contractRenewalDate !== undefined) {
+      updatePayload.contractRenewalDate = input.contractRenewalDate ? new Date(input.contractRenewalDate) : null
+    }
+    if (input.internalNotes !== undefined) updatePayload.internalNotes = input.internalNotes
 
     updatePayload.lastActivity = new Date()
 

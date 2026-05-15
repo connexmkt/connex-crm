@@ -322,35 +322,8 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart
-                  data={pipelineChartData}
-                  layout="vertical"
-                  margin={{ left: 8, right: 16, top: 0, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    horizontal={false}
-                    stroke="rgba(255,255,255,0.05)"
-                  />
-                  <XAxis
-                    type="number"
-                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="stage"
-                    tick={{ fontSize: 12, fill: "var(--foreground)" }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={72}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="count" radius={[0, 6, 6, 0]} fill="#5B5FE8" />
-                </BarChart>
-              </ResponsiveContainer>
+              <h1>TODO</h1>
+              <p>Esse gráfico servirá para acomodar os leads por etapa até o fechamento do contrato</p>
             </CardContent>
           </Card>
 
@@ -362,65 +335,10 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="space-y-3">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex items-start gap-3 animate-pulse"
-                    >
-                      <div className="h-8 w-8 shrink-0 rounded-full bg-secondary" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-3 rounded bg-secondary w-3/4" />
-                        <div className="h-2 rounded bg-secondary w-1/4" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {activities.slice(0, 5).map((activity) => (
-                    <motion.div
-                      key={activity.id}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="flex items-start gap-3"
-                    >
-                      <Avatar className="h-8 w-8 shrink-0">
-                        <AvatarImage
-                          src={activity.user.avatar}
-                          alt={activity.user.name}
-                        />
-                        <AvatarFallback className="bg-primary/10 text-xs text-primary">
-                          {activity.user.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-foreground leading-snug">
-                          {activity.description}
-                        </p>
-                        <div className="mt-1 flex items-center gap-2">
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "text-[10px] px-1.5 py-0",
-                              activityColors[activity.type],
-                            )}
-                          >
-                            {activityLabels[activity.type]}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {formatRelativeTime(new Date(activity.timestamp))}
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
+              <h1>TODO</h1>
+              <p>Esse card servirá para acompanhar as atividades recentes</p>
+              <p>As atividades recentes serão as últimas 10 atividades registradas</p>
+              <p>Exemplo: marcação de reunião, criação de cliente, etc.</p>
             </CardContent>
           </Card>
         </div>

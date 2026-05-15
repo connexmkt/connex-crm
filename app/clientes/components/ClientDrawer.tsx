@@ -1,0 +1,334 @@
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Activity, Campaign, Client } from "@/lib/types";
+
+// ─── Components ─────────────────────────────────────────────────────────────
+import ArquivosTab from "./ArquivosTab";
+import ContatosTab from "./ContatosTab";
+import StatusBadge from "./StatusBadge";
+import NotasInternasSection from "./NotasInternasSection";
+
+import {
+  X,
+  DollarSign,
+  Mail,
+  Phone,
+  Globe,
+  Building2,
+  Calendar,
+  RefreshCw,
+} from "lucide-react";
+
+export default function ClientDrawer({
+  client,
+  onClose,
+  onClientUpdate,
+}: {
+  client: Client;
+  onClose: () => void;
+  onClientUpdate?: (updated: Client) => void;
+}) {
+  const allActivities: Activity[] = [];
+  const allCampaigns: Campaign[] = [];
+  const clientActivities = allActivities.filter(
+    (a) => a.client?.id === client.id,
+  );
+  const clientCampaigns = allCampaigns.filter((c) => c.client.id === client.id);
+
+  return (
+    <motion.div
+      initial={{ x: 440, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: 440, opacity: 0 }}
+      transition={{ type: "spring", damping: 28, stiffness: 280 }}
+      className="fixed right-0 top-0 z-50 flex h-full w-full max-w-[480px] flex-col bg-card shadow-2xl border-l border-border"
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between border-b border-border p-5">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xl font-bold text-primary">
+            {client.name[0]}
+          </div>
+          <div>
+            <h2 className="font-heading text-base font-semibold text-foreground leading-tight">
+              {client.name}
+            </h2>
+            <p className="text-sm text-muted-foreground">{client.segment}</p>
+            <div className="mt-1">
+              <StatusBadge status={client.status} />
+            </div>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="h-8 w-8 shrink-0"
+          aria-label="Fechar"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Contract value badge */}
+      <div className="border-b border-border px-5 py-2.5">
+        <div className="flex items-center gap-2 text-sm">
+          <DollarSign className="h-4 w-4 text-success" />
+          <span className="font-semibold text-foreground">
+            R$ {client.contractValue.toLocaleString("pt-BR")}
+          </span>
+          <span className="text-muted-foreground">/mês</span>
+          <Badge variant="secondary" className="ml-auto text-xs">
+            {client.plan}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <Tabs
+        defaultValue="visao-geral"
+        className="flex flex-1 flex-col overflow-hidden"
+      >
+        <div className="border-b border-border px-5 pt-3">
+          <TabsList className="h-auto gap-0 rounded-none bg-transparent p-0">
+            {[
+              { value: "visao-geral", label: "Geral" },
+              { value: "contatos", label: "Contatos" },
+              { value: "arquivos", label: "Arquivos" },
+              { value: "historico", label: "Histórico" },
+              { value: "campanhas", label: "Campanhas" },
+            ].map((tab) => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="rounded-none border-b-2 border-transparent px-3 pb-2.5 pt-0 text-xs font-medium text-muted-foreground transition-colors data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
+              >
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          {/* Visão Geral */}
+          <TabsContent value="visao-geral" className="mt-0 space-y-4">
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Contato principal
+              </h3>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="truncate text-foreground">
+                    {client.contact.email}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="text-foreground">
+                    {client.contact.phone}
+                  </span>
+                </div>
+                {client.contact.website && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <a
+                      href={client.contact.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="truncate text-primary hover:underline"
+                    >
+                      {client.contact.website}
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Detalhes
+              </h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <Building2 className="h-3.5 w-3.5" /> Segmento
+                  </span>
+                  <span className="font-medium text-foreground">
+                    {client.segment}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <Calendar className="h-3.5 w-3.5" /> Onboarding
+                  </span>
+                  <span className="font-medium text-foreground">
+                    {new Date(client.onboardingDate).toLocaleDateString(
+                      "pt-BR",
+                    )}
+                  </span>
+                </div>
+                {client.contractStartDate && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5" /> Início contrato
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {new Date(client.contractStartDate).toLocaleDateString(
+                        "pt-BR",
+                      )}
+                    </span>
+                  </div>
+                )}
+                {client.contractRenewalDate && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <RefreshCw className="h-3.5 w-3.5" /> Renovação
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {new Date(client.contractRenewalDate).toLocaleDateString(
+                        "pt-BR",
+                      )}
+                    </span>
+                  </div>
+                )}
+                {client.responsible && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Responsável</span>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={client.responsible.avatar} />
+                        <AvatarFallback className="bg-primary/10 text-[9px] text-primary">
+                          {client.responsible.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium text-foreground">
+                        {client.responsible.name.split(" ")[0]}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    Última Atividade
+                  </span>
+                  <span className="font-medium text-foreground">
+                    {new Date(client.lastActivity).toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Observações internas */}
+            <NotasInternasSection
+              client={client}
+              onClientUpdate={onClientUpdate}
+            />
+          </TabsContent>
+
+          {/* Contatos */}
+          <TabsContent value="contatos" className="mt-0">
+            <ContatosTab clienteId={client.id} />
+          </TabsContent>
+
+          {/* Arquivos */}
+          <TabsContent value="arquivos" className="mt-0">
+            <ArquivosTab clienteId={client.id} />
+          </TabsContent>
+
+          {/* Histórico */}
+          <TabsContent value="historico" className="mt-0">
+            {clientActivities.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                Nenhuma atividade registrada
+              </p>
+            ) : (
+              <div className="relative space-y-4 pl-4 before:absolute before:left-1.5 before:top-2 before:h-[calc(100%-16px)] before:w-px before:bg-border">
+                {clientActivities.map((activity) => (
+                  <div key={activity.id} className="relative flex gap-3">
+                    <div className="absolute -left-[13px] top-1 h-2.5 w-2.5 rounded-full border-2 border-primary bg-card" />
+                    <div>
+                      <p className="text-sm text-foreground">
+                        {activity.description}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {new Date(activity.timestamp).toLocaleDateString(
+                          "pt-BR",
+                          {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Campanhas */}
+          <TabsContent value="campanhas" className="mt-0 space-y-3">
+            {clientCampaigns.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                Nenhuma campanha vinculada
+              </p>
+            ) : (
+              clientCampaigns.map((campaign) => (
+                <div
+                  key={campaign.id}
+                  className="rounded-lg border border-border bg-secondary/30 p-3"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {campaign.name}
+                      </p>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {campaign.platforms.map((p) => (
+                          <Badge
+                            key={p}
+                            variant="secondary"
+                            className="px-1 text-[10px]"
+                          >
+                            {p}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-xs",
+                        campaign.status === "Ativa"
+                          ? "bg-success/10 text-success border-success/20"
+                          : campaign.status === "Pausada"
+                            ? "bg-warning/10 text-warning border-warning/20"
+                            : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {campaign.status}
+                    </Badge>
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    R$ {campaign.budget.spent.toLocaleString("pt-BR")} / R${" "}
+                    {campaign.budget.total.toLocaleString("pt-BR")}
+                  </div>
+                </div>
+              ))
+            )}
+          </TabsContent>
+        </div>
+      </Tabs>
+    </motion.div>
+  );
+}

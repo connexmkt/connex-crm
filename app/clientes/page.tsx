@@ -14,6 +14,7 @@ import ClienteFormDialog from "./components/ClienteFormDialog";
 import ClientDrawer from "./components/ClientDrawer";
 import TableView from "./components/TableView";
 import GridView from "./components/GridView";
+import DeleteModal from "./components/DeleteModal";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 import { statusFilters } from "./constants/status-filters";
@@ -145,6 +146,7 @@ export default function ClientesPage() {
       </AnimatePresence>
 
       {/* Delete confirmation */}
+      <DeleteModal />
 
       {/* Cliente Form Dialog */}
       <ClienteFormDialog

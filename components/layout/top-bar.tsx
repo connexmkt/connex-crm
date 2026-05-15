@@ -92,17 +92,6 @@ export function TopBar({ title, onMenuClick, showMenuButton }: TopBarProps) {
         </h1>
       </div>
 
-      {/* Center section - Search */}
-      <div className="hidden max-w-md flex-1 px-8 md:block">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar clientes, campanhas, leads..."
-            className="h-9 bg-secondary pl-10 text-sm"
-          />
-        </div>
-      </div>
-
       {/* Right section */}
       <div className="flex items-center gap-2">
         {/* Theme toggle */}

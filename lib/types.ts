@@ -74,6 +74,47 @@ export interface Lead {
 
 export type FunnelStage = 'atracao' | 'retencao' | 'adesao' | 'recompra' | 'indicacao'
 
+// ── Pipeline de vendas (Kanban comercial) ──────────────────────────────────────
+
+export type PipelineStage =
+  | 'novo_lead'
+  | 'em_contato'
+  | 'reuniao_agendada'
+  | 'proposta_enviada'
+  | 'negociacao'
+  | 'fechado'
+  | 'perdido'
+
+export type LeadSource = 'site' | 'indicacao' | 'prospeccao'
+
+export interface PipelineLead {
+  id: string
+  companyName: string
+  contactName: string
+  contactEmail?: string
+  contactPhone?: string
+  estimatedValue: number
+  stage: PipelineStage
+  responsible: User
+  lastContactAt?: Date
+  nextAction?: string
+  nextActionDate?: Date
+  meetingDate?: Date
+  lostReason?: string
+  source: LeadSource
+  notes?: string
+  staleAfterDays: number
+  stageEnteredAt: Date
+  /** Computed: days elapsed since stageEnteredAt */
+  daysInStage: number
+  /** Computed: true when daysInStage > staleAfterDays */
+  isStale: boolean
+  /** Set when stage = fechado and the lead was converted to a client */
+  clienteId?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface Campaign {
   id: string
   name: string

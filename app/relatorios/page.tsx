@@ -19,6 +19,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  LineChart,
   ComposedChart,
   Line,
   Legend,
@@ -71,7 +72,9 @@ export default function RelatoriosPage() {
         const json = await res.json();
         setPayload(json.data as RelatoriosPayload);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro ao carregar relatórios");
+        setError(
+          err instanceof Error ? err.message : "Erro ao carregar relatórios",
+        );
       } finally {
         setLoading(false);
       }
@@ -97,7 +100,11 @@ export default function RelatoriosPage() {
           <p className="text-sm text-muted-foreground">
             {error ?? "Não foi possível carregar os dados."}
           </p>
-          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.location.reload()}
+          >
             Tentar novamente
           </Button>
         </div>
@@ -105,8 +112,14 @@ export default function RelatoriosPage() {
     );
   }
 
-  const { kpiData, clientGrowthData, channelData, funnelData, revenueData, clientReports } =
-    payload;
+  const {
+    kpiData,
+    clientGrowthData,
+    channelData,
+    funnelData,
+    revenueData,
+    clientReports,
+  } = payload;
 
   return (
     <AppShell title="Relatórios">
@@ -210,24 +223,37 @@ function KpiCard({
         <div className="flex items-start justify-between">
           <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="font-heading text-2xl font-bold text-foreground">{value}</p>
+            <p className="font-heading text-2xl font-bold text-foreground">
+              {value}
+            </p>
             <div className="flex items-center gap-1">
               {isPositive ? (
                 <TrendingUp
-                  className={cn("h-4 w-4", isGood ? "text-success" : "text-danger")}
+                  className={cn(
+                    "h-4 w-4",
+                    isGood ? "text-success" : "text-danger",
+                  )}
                 />
               ) : (
                 <TrendingUp
-                  className={cn("h-4 w-4 rotate-180", isGood ? "text-success" : "text-danger")}
+                  className={cn(
+                    "h-4 w-4 rotate-180",
+                    isGood ? "text-success" : "text-danger",
+                  )}
                 />
               )}
               <span
-                className={cn("text-sm font-medium", isGood ? "text-success" : "text-danger")}
+                className={cn(
+                  "text-sm font-medium",
+                  isGood ? "text-success" : "text-danger",
+                )}
               >
                 {isPositive ? "+" : ""}
                 {variation}%
               </span>
-              <span className="text-xs text-muted-foreground ml-1">vs mês anterior</span>
+              <span className="text-xs text-muted-foreground ml-1">
+                vs mês anterior
+              </span>
             </div>
           </div>
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -245,19 +271,15 @@ function ClientGrowthChart({ data }: { data: ClientGrowthItem[] }) {
   return (
     <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-base font-semibold">Crescimento de Clientes</CardTitle>
-        <CardDescription>Evolução da base de clientes ativos</CardDescription>
+        <CardTitle className="text-base font-semibold">
+          Crescimento de Leads
+        </CardTitle>
+        <CardDescription>Leads ativos no pipeline por mês</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data}>
-              <defs>
-                <linearGradient id="colorClients" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#5B5FE8" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#5B5FE8" stopOpacity={0} />
-                </linearGradient>
-              </defs>
+            <BarChart data={data}>
               <CartesianGrid
                 strokeDasharray="3 3"
                 vertical={false}
@@ -275,21 +297,20 @@ function ClientGrowthChart({ data }: { data: ClientGrowthItem[] }) {
                 tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
               />
               <Tooltip
+                cursor={{ fill: "rgba(255,255,255,0.05)" }}
                 contentStyle={{
                   backgroundColor: "var(--card)",
                   borderColor: "var(--border)",
                   borderRadius: "8px",
                 }}
               />
-              <Area
-                type="monotone"
-                dataKey="clients"
-                stroke="#5B5FE8"
-                strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#colorClients)"
+              <Bar
+                dataKey="leads"
+                name="Leads ativos"
+                fill="#5B5FE8"
+                radius={[4, 4, 0, 0]}
               />
-            </AreaChart>
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </CardContent>
@@ -301,7 +322,9 @@ function ChannelPerformanceChart({ data }: { data: ChannelItem[] }) {
   return (
     <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-base font-semibold">Performance por Canal</CardTitle>
+        <CardTitle className="text-base font-semibold">
+          Performance por Canal
+        </CardTitle>
         <CardDescription>Leads e conversões por plataforma</CardDescription>
       </CardHeader>
       <CardContent>
@@ -335,7 +358,12 @@ function ChannelPerformanceChart({ data }: { data: ChannelItem[] }) {
                 iconType="circle"
                 wrapperStyle={{ fontSize: "12px", paddingTop: "20px" }}
               />
-              <Bar dataKey="leads" name="Leads" fill="#5B5FE8" radius={[4, 4, 0, 0]} />
+              <Bar
+                dataKey="leads"
+                name="Leads"
+                fill="#5B5FE8"
+                radius={[4, 4, 0, 0]}
+              />
               <Bar
                 dataKey="conversions"
                 name="Conversões"
@@ -354,7 +382,9 @@ function FunnelDistributionChart({ data }: { data: FunnelItem[] }) {
   return (
     <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-base font-semibold">Distribuição do Funil</CardTitle>
+        <CardTitle className="text-base font-semibold">
+          Distribuição do Funil
+        </CardTitle>
         <CardDescription>Volume de leads por etapa do pipeline</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center">
@@ -371,7 +401,10 @@ function FunnelDistributionChart({ data }: { data: FunnelItem[] }) {
                 dataKey="value"
               >
                 {data.map((_, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
                 ))}
               </Pie>
               <Tooltip
@@ -400,13 +433,15 @@ function RevenueChart({ data }: { data: RevenueItem[] }) {
   return (
     <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="text-base font-semibold">Faturamento Mensal</CardTitle>
-        <CardDescription>Comparativo de faturamento mês a mês</CardDescription>
+        <CardTitle className="text-base font-semibold">
+          Faturamento Mensal
+        </CardTitle>
+        <CardDescription>Faturamento mensal (contratos ativos)</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data}>
+            <LineChart data={data}>
               <CartesianGrid
                 strokeDasharray="3 3"
                 vertical={false}
@@ -422,8 +457,15 @@ function RevenueChart({ data }: { data: RevenueItem[] }) {
                 axisLine={false}
                 tickLine={false}
                 tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
+                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
               />
               <Tooltip
+                formatter={(value: number) =>
+                  value.toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  })
+                }
                 contentStyle={{
                   backgroundColor: "var(--card)",
                   borderColor: "var(--border)",
@@ -434,16 +476,16 @@ function RevenueChart({ data }: { data: RevenueItem[] }) {
                 iconType="circle"
                 wrapperStyle={{ fontSize: "12px", paddingTop: "20px" }}
               />
-              <Bar dataKey="value" name="Atual" fill="#5B5FE8" radius={[4, 4, 0, 0]} />
               <Line
                 type="monotone"
-                dataKey="previous"
-                name="Anterior"
-                stroke="#F59E0B"
-                strokeWidth={2}
-                dot={{ r: 4 }}
+                dataKey="value"
+                name="Faturamento"
+                stroke="#5B5FE8"
+                strokeWidth={3}
+                dot={{ r: 4, fill: "#5B5FE8", strokeWidth: 2 }}
+                activeDot={{ r: 6, strokeWidth: 0 }}
               />
-            </ComposedChart>
+            </LineChart>
           </ResponsiveContainer>
         </div>
       </CardContent>
@@ -456,87 +498,32 @@ function RevenueChart({ data }: { data: RevenueItem[] }) {
 function ClientReportTable({ reports }: { reports: ClientReportItem[] }) {
   return (
     <Card className="bg-card border-border">
-      <CardHeader>
-        <CardTitle className="text-base font-semibold">Relatório por Cliente</CardTitle>
-        <CardDescription>Detalhamento de performance individual</CardDescription>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border bg-secondary/30">
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Cliente
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Campanha Ativa
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Leads
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Taxa Conv.
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  ROI Estimado
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/50">
-              {reports.map((report) => (
-                <tr
-                  key={report.id}
-                  className="hover:bg-primary/5 transition-colors"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
-                        {report.name[0]}
-                      </div>
-                      <span className="text-sm font-medium text-foreground">
-                        {report.name}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-muted-foreground">
-                      {report.activeCampaign ?? "Nenhuma"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-foreground">{report.leads}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-foreground">{report.convRate}%</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-success">
-                      {report.roi > 0 ? `${report.roi}x` : "-"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "text-[10px] px-2 py-0",
-                        report.status === "Ativo"
-                          ? "bg-success/10 text-success border-success/20"
-                          : report.status === "Em risco"
-                            ? "bg-warning/10 text-warning border-warning/20"
-                            : "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {report.status}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div className="space-y-1">
+          <CardTitle className="text-base font-semibold">
+            Relatório por Cliente
+          </CardTitle>
+          <CardDescription>
+            Detalhamento de performance individual
+          </CardDescription>
         </div>
+        <Badge
+          variant="secondary"
+          className="bg-primary/10 text-primary border-none"
+        >
+          Em breve
+        </Badge>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-4">
+          <FileText className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <h3 className="text-lg font-medium text-foreground">
+          Relatório por Cliente
+        </h3>
+        <p className="text-sm text-muted-foreground max-w-[280px] mt-1">
+          Em breve — detalhamento individual de performance por cliente.
+        </p>
       </CardContent>
     </Card>
   );

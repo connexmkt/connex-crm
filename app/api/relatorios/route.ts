@@ -16,7 +16,7 @@
 
 import { createClient } from '@/lib/server'
 import { ok, unauthorized, serverError } from '@/lib/api/response'
-import type { Client } from '@/lib/types'
+import type { Client, PipelineStage } from '@/lib/types'
 
 // ── Tipos do payload ───────────────────────────────────────────────────────────
 
@@ -32,10 +32,10 @@ export type KpiData = {
   taxaConversaoVariacao: number
 }
 
-export type ClientGrowthItem = { month: string; clients: number }
+export type ClientGrowthItem = { month: string; leads: number }
 export type ChannelItem = { channel: string; leads: number; conversions: number; cost: number }
 export type FunnelItem = { name: string; value: number }
-export type RevenueItem = { month: string; value: number; previous: number }
+export type RevenueItem = { month: string; value: number }
 
 export type ClientReportItem = {
   id: string
@@ -67,6 +67,13 @@ interface ClientRow {
   onboarding_date: string
 }
 
+interface PipelineLeadRow {
+  id: string
+  stage: PipelineStage
+  created_at: string
+  stage_entered_at: string | null
+}
+
 // ── Dados simulados (substituir quando as tabelas de campanhas/leads existirem) ──
 
 const CHANNEL_DATA: ChannelItem[] = [
@@ -88,27 +95,46 @@ const MONTHS_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function buildClientGrowthData(rows: ClientRow[]): ClientGrowthItem[] {
-  const now = new Date()
-  return Array.from({ length: 5 }, (_, i) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - (4 - i), 1)
-    const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59)
-    const count = rows.filter((r) => new Date(r.onboarding_date) <= endOfMonth).length
-    return { month: MONTHS_PT[date.getMonth()], clients: count }
+/**
+ * Snapshot no fim de cada mês do ano corrente.
+ * Lead conta se created_at <= fimDoMes e, naquele instante, não estava em fechado/perdido.
+ */
+function buildActiveLeadsByMonth(leads: PipelineLeadRow[], year: number): ClientGrowthItem[] {
+  return MONTHS_PT.map((month, m) => {
+    const endOfMonth = new Date(year, m + 1, 0, 23, 59, 59)
+    
+    const activeLeads = leads.filter((lead) => {
+      const createdAt = new Date(lead.created_at)
+      if (createdAt > endOfMonth) return false
+
+      const isTerminal = lead.stage === 'fechado' || lead.stage === 'perdido'
+      if (!isTerminal) return true
+
+      // Se hoje está terminal, verificar se já estava terminal no fim daquele mês
+      if (!lead.stage_entered_at) return false // Se não tem data, assume que já era terminal
+      const stageEnteredAt = new Date(lead.stage_entered_at)
+      return stageEnteredAt > endOfMonth
+    })
+
+    return { month, leads: activeLeads.length }
   })
 }
 
-function buildRevenueData(rows: ClientRow[]): RevenueItem[] {
-  const now = new Date()
-  const activeRows = rows.filter((r) => r.status === 'Ativo')
-  const totalMonthly = activeRows.reduce((sum, r) => sum + r.contract_value, 0) || 68500
+/**
+ * Soma de contract_value dos clientes com status 'Ativo' no fim de cada mês.
+ */
+function buildRevenueData(rows: ClientRow[], year: number): RevenueItem[] {
+  return MONTHS_PT.map((month, m) => {
+    const endOfMonth = new Date(year, m + 1, 0, 23, 59, 59)
+    
+    const activeRevenue = rows
+      .filter((r) => {
+        const onboardingDate = new Date(r.onboarding_date)
+        return r.status === 'Ativo' && onboardingDate <= endOfMonth
+      })
+      .reduce((sum, r) => sum + (r.contract_value || 0), 0)
 
-  return Array.from({ length: 5 }, (_, i) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - (4 - i), 1)
-    const factor = 0.80 + i * 0.05
-    const value = Math.round(totalMonthly * factor)
-    const previous = Math.round(value * 0.90)
-    return { month: MONTHS_PT[date.getMonth()], value, previous }
+    return { month, value: activeRevenue }
   })
 }
 
@@ -120,16 +146,25 @@ export async function GET() {
   if (!user) return unauthorized()
 
   try {
-    const { data: rows, error } = await supabase
+    // 1. Buscar clientes
+    const { data: clientRows, error: clientError } = await supabase
       .from('clientes')
       .select('id, name, segment, status, contract_value, onboarding_date')
       .order('onboarding_date', { ascending: true })
 
-    if (error) throw error
+    if (clientError) throw clientError
 
-    const clients = (rows ?? []) as ClientRow[]
+    // 2. Buscar leads do pipeline para o gráfico de crescimento
+    const { data: leadRows, error: leadError } = await supabase
+      .from('pipeline_leads')
+      .select('id, stage, created_at, stage_entered_at')
+
+    if (leadError) throw leadError
+
+    const clients = (clientRows ?? []) as ClientRow[]
+    const leads = (leadRows ?? []) as PipelineLeadRow[]
     const now = new Date()
-    const currentMonth = MONTHS_PT[now.getMonth()]
+    const currentYear = now.getFullYear()
 
     // KPIs derivados dos canais
     const totalInvestido = CHANNEL_DATA.reduce((s, c) => s + c.cost, 0)
@@ -150,31 +185,15 @@ export async function GET() {
       taxaConversaoVariacao: 2.1,
     }
 
-    // Relatório por cliente — campanhas simuladas até tabela existir
-    const clientReports: ClientReportItem[] = clients.slice(0, 6).map((client, i) => {
-      const isActive = client.status === 'Ativo'
-      const leads = isActive ? Math.max(0, 22 - i * 3) : 0
-      const convRate = isActive ? parseFloat((4.8 - i * 0.4).toFixed(1)) : 0
-      const budgetSpent = isActive ? 5000 - i * 500 : 1
-      const roi = isActive ? parseFloat(((leads * 150) / budgetSpent).toFixed(1)) : 0
-
-      return {
-        id: client.id,
-        name: client.name,
-        status: client.status,
-        activeCampaign: isActive ? `Campanha ${currentMonth}` : null,
-        leads,
-        convRate,
-        roi,
-      }
-    })
+    // Relatório por cliente — feature futura
+    const clientReports: ClientReportItem[] = []
 
     const payload: RelatoriosPayload = {
       kpiData,
-      clientGrowthData: buildClientGrowthData(clients),
+      clientGrowthData: buildActiveLeadsByMonth(leads, currentYear),
       channelData: CHANNEL_DATA,
       funnelData: FUNNEL_DATA,
-      revenueData: buildRevenueData(clients),
+      revenueData: buildRevenueData(clients, currentYear),
       clientReports,
     }
 

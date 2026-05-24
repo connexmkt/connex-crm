@@ -3,6 +3,17 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CSS } from "@dnd-kit/utilities";
+import { AppShell } from "@/components/layout";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import type { PipelineLead, PipelineStage } from "@/lib/types";
+
 import {
   DndContext,
   DragOverlay,
@@ -14,11 +25,13 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
+
 import {
   SortableContext,
   verticalListSortingStrategy,
   useSortable,
 } from "@dnd-kit/sortable";
+
 import {
   Plus,
   X,
@@ -31,10 +44,7 @@ import {
   Mail,
   Building2,
 } from "lucide-react";
-import { AppShell } from "@/components/layout";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 import {
   Dialog,
   DialogContent,
@@ -42,9 +52,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+
 import {
   Select,
   SelectContent,
@@ -52,78 +60,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import type { PipelineLead, PipelineStage } from "@/lib/types";
 
-// ─── Stage Config ─────────────────────────────────────────────────────────────
-
-const stageConfig: Record<
-  PipelineStage,
-  { label: string; icon: string; color: string; headerBg: string }
-> = {
-  novo_lead: {
-    label: "Novo Lead",
-    icon: "🎯",
-    color: "#5B5FE8",
-    headerBg: "bg-primary/10",
-  },
-  em_contato: {
-    label: "Em Contato",
-    icon: "💬",
-    color: "#14B8A6",
-    headerBg: "bg-chart-2/10",
-  },
-  reuniao_agendada: {
-    label: "Reunião Agendada",
-    icon: "📅",
-    color: "#8B5CF6",
-    headerBg: "bg-chart-3/10",
-  },
-  proposta_enviada: {
-    label: "Proposta Enviada",
-    icon: "📄",
-    color: "#F59E0B",
-    headerBg: "bg-warning/10",
-  },
-  negociacao: {
-    label: "Negociação",
-    icon: "🤝",
-    color: "#EC4899",
-    headerBg: "bg-pink-500/10",
-  },
-  fechado: {
-    label: "Fechado",
-    icon: "🏆",
-    color: "#22C55E",
-    headerBg: "bg-success/10",
-  },
-  perdido: {
-    label: "Perdido",
-    icon: "❌",
-    color: "#EF4444",
-    headerBg: "bg-danger/10",
-  },
-};
-
-const stages: PipelineStage[] = [
-  "novo_lead",
-  "em_contato",
-  "reuniao_agendada",
-  "proposta_enviada",
-  "negociacao",
-  "fechado",
-  "perdido",
-];
-
-const LOST_REASONS = [
-  "Preço",
-  "Concorrente",
-  "Timing",
-  "Sem budget",
-  "Sem fit",
-  "Outro",
-];
+import {
+  PIPELINE_STAGE_CONFIG as stageConfig,
+  PIPELINE_STAGES as stages,
+  LOST_REASON_OPTIONS,
+} from "@/lib/constants/pipeline";
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -619,8 +561,8 @@ function LeadDetailDrawer({
             </h3>
             <div className="flex flex-wrap gap-2">
               {stages
-                .filter((s) => s !== lead.stage)
-                .map((s) => (
+                .filter((s: PipelineStage) => s !== lead.stage)
+                .map((s: PipelineStage) => (
                   <Button
                     key={s}
                     variant="outline"
@@ -899,7 +841,17 @@ function LostReasonDialog({
   onConfirm: (reason: string) => void;
   onCancel: () => void;
 }) {
-  const [reason, setReason] = useState("");
+  const [reason, setReason] = useState<string>("");
+  const [customDetail, setCustomDetail] = useState("");
+
+  const isOther = reason === "Outro";
+  const isValid = reason && (!isOther || customDetail.trim().length >= 3);
+
+  function handleConfirm() {
+    if (!isValid) return;
+    const finalReason = isOther ? `Outro: ${customDetail.trim()}` : reason;
+    onConfirm(finalReason);
+  }
 
   return (
     <Dialog open onOpenChange={onCancel}>
@@ -907,29 +859,39 @@ function LostReasonDialog({
         <DialogHeader>
           <DialogTitle>Motivo da Perda</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3 pt-1">
+        <div className="space-y-4 pt-1">
           <p className="text-sm text-muted-foreground">
             Registre por que este lead não foi fechado.
           </p>
-          <div className="grid grid-cols-3 gap-2">
-            {LOST_REASONS.map((r) => (
-              <Button
-                key={r}
-                variant={reason === r ? "default" : "outline"}
-                size="sm"
-                className="text-xs"
-                onClick={() => setReason(r)}
-              >
-                {r}
-              </Button>
-            ))}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="lost-reason">Motivo *</Label>
+            <Select value={reason} onValueChange={setReason}>
+              <SelectTrigger id="lost-reason">
+                <SelectValue placeholder="Selecione um motivo" />
+              </SelectTrigger>
+              <SelectContent>
+                {LOST_REASON_OPTIONS.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <Textarea
-            placeholder="Detalhes adicionais (opcional)..."
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            rows={3}
-          />
+
+          {isOther && (
+            <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+              <Label htmlFor="custom-detail">Detalhamento *</Label>
+              <Textarea
+                id="custom-detail"
+                placeholder="Descreva o motivo (mín. 3 caracteres)..."
+                value={customDetail}
+                onChange={(e) => setCustomDetail(e.target.value)}
+                rows={3}
+              />
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onCancel}>
@@ -937,8 +899,8 @@ function LostReasonDialog({
           </Button>
           <Button
             variant="destructive"
-            disabled={!reason.trim()}
-            onClick={() => onConfirm(reason.trim())}
+            disabled={!isValid}
+            onClick={handleConfirm}
           >
             Confirmar Perda
           </Button>
@@ -1021,9 +983,12 @@ export default function PipelineComericalPage() {
       setLeads((prev) => prev.map((l) => (l.id === leadId ? updated : l)));
 
       if (targetStage === "fechado") {
-        toast.success(
-          "🏆 Lead fechado! Migrando para Adesão no ciclo de vida.",
-        );
+        toast.success("🏆 Lead fechado e cliente ativo criado!", {
+          action: {
+            label: "Ver Cliente",
+            onClick: () => (window.location.href = "/clientes"),
+          },
+        });
       } else if (targetStage === "perdido") {
         toast.info("Lead marcado como perdido.");
       }
@@ -1087,7 +1052,7 @@ export default function PipelineComericalPage() {
   }
 
   const leadsByStage = stages.reduce(
-    (acc, stage) => {
+    (acc: Record<PipelineStage, PipelineLead[]>, stage: PipelineStage) => {
       acc[stage] = leads.filter((l) => l.stage === stage);
       return acc;
     },
@@ -1161,7 +1126,7 @@ export default function PipelineComericalPage() {
             onDragEnd={handleDragEnd}
           >
             <div className="flex gap-4 min-w-max">
-              {stages.map((stage) => (
+              {stages.map((stage: PipelineStage) => (
                 <KanbanColumn
                   key={stage}
                   stage={stage}

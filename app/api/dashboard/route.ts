@@ -2,10 +2,10 @@
  * GET /api/dashboard
  *
  * Retorna todos os dados necessários para o Dashboard:
- *   - kpiData     — métricas agregadas (clientes reais do Supabase; leads/campanhas/faturamento simulados)
- *   - pipelineChartData — distribuição do funil (simulado até tabela de leads existir)
- *   - activities  — atividades recentes (simulado)
- *   - tasks       — próximas tarefas (simulado)
+ *   - kpiData     — métricas agregadas (clientes e leads reais do Supabase)
+ *   - pipelineChartData — distribuição do funil (dados reais)
+ *   - activities  — atividades recentes (vazio até tabela existir)
+ *   - tasks       — próximas tarefas (dados reais)
  *   - atRiskClients — clientes com status "Em risco" (dados reais do Supabase)
  *
  * Response 200: { data: DashboardPayload }
@@ -13,105 +13,58 @@
  * Response 500: Internal Server Error
  */
 
-import { createClient } from '@/lib/server'
-import { ok, unauthorized, serverError } from '@/lib/api/response'
-import type { Activity, Task, Client, User } from '@/lib/types'
-import { TasksService } from '@/lib/services/tasks.service'
-import { MOCK_LEADS } from '@/lib/mocks/leads'
-import { MOCK_CAMPANHAS } from '@/lib/mocks/campanhas'
+import { createClient } from "@/lib/server";
+import { ok, unauthorized, serverError } from "@/lib/api/response";
+import type { Activity, Task, Client, User, PipelineStage } from "@/lib/types";
+import { TasksService } from "@/lib/services/tasks.service";
+
+import {
+  PIPELINE_STAGE_CONFIG,
+  PIPELINE_STAGES,
+} from "@/lib/constants/pipeline";
 
 // ── Tipos do payload ───────────────────────────────────────────────────────────
 // ... (rest of types)
 
 type KpiData = {
-  totalClientes: number
-  clientesVariacao: number
-  leadsNoPipeline: number
-  leadsVariacao: number
-  campanhasAtivas: number
-  campanhasVariacao: number
-  faturamentoMes: number
-  faturamentoVariacao: number
-}
+  totalClientes: number;
+  clientesVariacao: number;
+  leadsNoPipeline: number;
+  leadsVariacao: number;
+  campanhasAtivas: number;
+  campanhasVariacao: number;
+  faturamentoMes: number;
+  faturamentoVariacao: number;
+};
 
 type PipelineChartItem = {
-  stage: string
-  count: number
-  color: string
-}
+  stage: string;
+  count: number;
+  color: string;
+};
 
 export type DashboardPayload = {
-  kpiData: KpiData
-  pipelineChartData: PipelineChartItem[]
-  activities: Activity[]
-  tasks: Task[]
-  atRiskClients: Client[]
-}
-
-// ── Dados simulados (substituir quando as tabelas existirem) ──────────────────
-
-const PLACEHOLDER_USER: User = {
-  id: 'u0',
-  name: 'Ana Lima',
-  email: 'ana@connex.io',
-  avatar: '',
-  role: 'Admin',
-}
-
-const now = Date.now()
-
-const MOCK_ACTIVITIES: Activity[] = [
-  {
-    id: 'act-1',
-    type: 'novo_lead',
-    description: 'Novo lead cadastrado: Tech Solutions Ltda',
-    timestamp: new Date(now - 1 * 3_600_000),
-    user: { ...PLACEHOLDER_USER, name: 'Carlos Menezes' },
-  },
-  {
-    id: 'act-2',
-    type: 'reuniao',
-    description: 'Reunião de alinhamento com Grupo Alfa agendada',
-    timestamp: new Date(now - 3 * 3_600_000),
-    user: PLACEHOLDER_USER,
-  },
-  {
-    id: 'act-3',
-    type: 'contrato',
-    description: 'Contrato assinado com Novara Digital',
-    timestamp: new Date(now - 1 * 86_400_000),
-    user: { ...PLACEHOLDER_USER, name: 'Julia Ramos' },
-  },
-  {
-    id: 'act-4',
-    type: 'campanha',
-    description: 'Nova campanha criada: Verão 2025 – Meta Ads',
-    timestamp: new Date(now - 2 * 86_400_000),
-    user: { ...PLACEHOLDER_USER, name: 'Pedro Souza' },
-  },
-  {
-    id: 'act-5',
-    type: 'novo_lead',
-    description: 'Novo lead qualificado: Agência Vortex',
-    timestamp: new Date(now - 3 * 86_400_000),
-    user: PLACEHOLDER_USER,
-  },
-]
+  kpiData: KpiData;
+  pipelineChartData: PipelineChartItem[];
+  activities: Activity[];
+  tasks: Task[];
+  atRiskClients: Client[];
+};
 
 // ── DB row shape ───────────────────────────────────────────────────────────────
 
 interface ClientRow {
-  id: string
-  name: string
-  logo: string | null
-  segment: string
-  status: Client['status']
-  responsible: User
-  contract_value: number
-  last_activity: string
-  onboarding_date: string
-  plan: string
-  contact: { email: string; phone: string; website?: string }
+  id: string;
+  name: string;
+  logo: string | null;
+  segment: string;
+  status: Client["status"];
+  responsible: User;
+  contract_value: number;
+  last_activity: string;
+  onboarding_date: string;
+  plan: string;
+  contact: { email: string; phone: string; website?: string };
 }
 
 function rowToClient(row: ClientRow): Client {
@@ -127,77 +80,89 @@ function rowToClient(row: ClientRow): Client {
     onboardingDate: new Date(row.onboarding_date),
     plan: row.plan,
     contact: row.contact,
-  }
-}
-
-const STAGE_CONFIG: Record<string, { label: string; color: string }> = {
-  atracao: { label: 'Atração', color: '#5B5FE8' },
-  retencao: { label: 'Retenção', color: '#7C7FEE' },
-  adesao: { label: 'Adesão', color: '#9DA0F4' },
-  recompra: { label: 'Recompra', color: '#BEC0FA' },
-  indicacao: { label: 'Indicação', color: '#DFDFF9' },
+  };
 }
 
 // ── Handler ────────────────────────────────────────────────────────────────────
 
 export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return unauthorized()
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return unauthorized();
 
   try {
-    const { data: rows, error } = await supabase
-      .from('clientes')
-      .select('id, name, logo, segment, status, responsible, contract_value, last_activity, onboarding_date, plan, contact')
+    // 1. Clientes
+    const { data: clientRows, error: clientError } = await supabase
+      .from("clientes")
+      .select(
+        "id, name, logo, segment, status, responsible, contract_value, last_activity, onboarding_date, plan, contact",
+      );
 
-    if (error) throw error
+    if (clientError) throw clientError;
 
-    const clients = ((rows ?? []) as ClientRow[]).map(rowToClient)
+    const clients = ((clientRows ?? []) as ClientRow[]).map(rowToClient);
+    const ativos = clients.filter((c) => c.status === "Ativo");
+    const atRiskClients = clients.filter((c) => c.status === "Em risco");
 
-    const ativos = clients.filter((c) => c.status === 'Ativo')
-    const atRiskClients = clients.filter((c) => c.status === 'Em risco')
+    const totalClientes = ativos.length;
+    const faturamentoMes = ativos.reduce((sum, c) => sum + c.contractValue, 0);
 
-    const totalClientes = ativos.length
-    const faturamentoMes = ativos.reduce((sum, c) => sum + c.contractValue, 0)
+    // 2. Leads no Pipeline (Reais)
+    const { data: leadRows, error: leadError } = await supabase
+      .from("pipeline_leads")
+      .select("stage");
 
+    if (leadError) throw leadError;
+
+    const leads = (leadRows ?? []) as { stage: PipelineStage }[];
+
+    // Leads ativos: todos exceto 'fechado' e 'perdido'
+    const leadsNoPipeline = leads.filter(
+      (l) => l.stage !== "fechado" && l.stage !== "perdido",
+    ).length;
+
+    // 3. Pipeline Chart Data (por estágio comercial)
+    const pipelineChartData: PipelineChartItem[] = PIPELINE_STAGES.map(
+      (stageKey: PipelineStage) => {
+        const config = PIPELINE_STAGE_CONFIG[stageKey];
+        return {
+          stage: config.label,
+          count: leads.filter((l) => l.stage === stageKey).length,
+          color: config.color,
+        };
+      },
+    );
+
+    // 4. Tarefas
     const tasks = await TasksService.list(supabase, {
       ownerId: user.id,
       limit: 5,
-    })
-
-    // Derivar dados do pipeline a partir dos leads mockados
-    const pipelineChartData: PipelineChartItem[] = Object.entries(STAGE_CONFIG).map(
-      ([stageKey, config]) => ({
-        stage: config.label,
-        count: MOCK_LEADS.filter((l) => l.stage === stageKey).length,
-        color: config.color,
-      })
-    )
-
-    const campanhasAtivasCount = MOCK_CAMPANHAS.filter((c) => c.status === 'Ativa').length
+    });
 
     const kpiData: KpiData = {
       totalClientes,
-      clientesVariacao: 8.3,
-      leadsNoPipeline: MOCK_LEADS.length,
-      leadsVariacao: 12.5,
-      campanhasAtivas: campanhasAtivasCount,
-      campanhasVariacao: -2.1,
-      faturamentoMes: faturamentoMes || 87_500,
-      faturamentoVariacao: 5.7,
-    }
+      clientesVariacao: 0,
+      leadsNoPipeline,
+      leadsVariacao: 0,
+      campanhasAtivas: 0,
+      campanhasVariacao: 0,
+      faturamentoMes,
+      faturamentoVariacao: 0,
+    };
 
     const payload: DashboardPayload = {
       kpiData,
       pipelineChartData,
-      activities: MOCK_ACTIVITIES,
+      activities: [], // TODO: Implementar tabela de atividades
       tasks,
       atRiskClients,
-    }
+    };
 
-    return ok(payload)
+    return ok(payload);
   } catch (err) {
-    console.error('[GET /api/dashboard]', err)
-    return serverError()
+    console.error("[GET /api/dashboard]", err);
+    return serverError();
   }
 }

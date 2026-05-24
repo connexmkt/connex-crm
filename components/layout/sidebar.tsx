@@ -35,9 +35,7 @@ import type { User } from "@/lib/types";
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/clientes", label: "Clientes", icon: Users },
-  { href: "/pipeline", label: "Kanban", icon: Kanban },
   { href: "/pipeline-comercial", label: "Pipeline Comercial", icon: TrendingUp },
-  { href: "/campanhas", label: "Campanhas", icon: Megaphone },
   { href: "/conteudo", label: "Conteúdo", icon: Calendar },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { href: "/configuracoes", label: "Configurações", icon: Settings },

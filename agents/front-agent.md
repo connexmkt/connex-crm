@@ -22,7 +22,6 @@ clientes/                 – Example of the module structure below
     hooks/                  – Data fetching and state hooks for this module
     schemas/                – Zod schemas for forms and validation
     page.tsx                – Page entry point
-pipeline/page.tsx         – Kanban board (dnd-kit)
 campanhas/page.tsx        – Campaign management
 conteudo/page.tsx         – Content calendar
 relatorios/page.tsx       – Reports and charts

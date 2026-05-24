@@ -146,8 +146,13 @@ export async function GET() {
       limit: 5,
     });
 
-    // 5. Atividades recentes (últimas 10 de toda a organização)
-    const activities = await AtividadesService.list(supabase, { limit: 10 });
+    // 5. Atividades recentes — isolado para não derrubar o dashboard inteiro
+    const activities = await AtividadesService.list(supabase, { limit: 10 }).catch(
+      (err) => {
+        console.error("[Dashboard] atividades fetch error:", err);
+        return [];
+      },
+    );
 
     const kpiData: KpiData = {
       totalClientes,

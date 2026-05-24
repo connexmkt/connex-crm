@@ -249,10 +249,11 @@ export default function DashboardPage() {
   useEffect(() => {
     fetch("/api/dashboard")
       .then((res) => res.json())
-      .then((json: { data: DashboardPayload }) => {
+      .then((json: { data?: DashboardPayload }) => {
+        if (!json.data) return;
         setDashboardData(json.data);
-        setTasks(json.data.tasks || []);
-        setAtividades(json.data.activities || []);
+        setTasks(json.data.tasks ?? []);
+        setAtividades(json.data.activities ?? []);
       })
       .catch((err) => console.error("[Dashboard] fetch error:", err))
       .finally(() => setLoading(false));

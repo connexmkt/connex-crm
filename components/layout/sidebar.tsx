@@ -36,7 +36,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/pipeline-comercial", label: "Pipeline Comercial", icon: TrendingUp },
-  { href: "/conteudo", label: "Conteúdo", icon: Calendar },
+  { href: "/conteudo", label: "Agenda", icon: Calendar },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];

@@ -13,13 +13,12 @@ import { NovaTarefaDialog } from "@/components/tasks/nova-tarefa-dialog";
 import { toast } from "sonner";
 
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
 } from "recharts";
 
 import {
@@ -136,51 +135,71 @@ function KpiCard({
   );
 }
 
-const activityColors: Record<string, string> = {
-  novo_lead: "bg-primary/10 text-primary border-primary/20",
-  reuniao: "bg-chart-2/10 text-chart-2 border-chart-2/20",
-  contrato: "bg-success/10 text-success border-success/20",
-  campanha: "bg-warning/10 text-warning border-warning/20",
-};
+function PipelineStagePieChart({ data }: { data: PipelineItem[] }) {
+  const filteredData = data.filter((item) => item.count > 0);
+  const isEmpty = filteredData.length === 0;
 
-const activityLabels: Record<string, string> = {
-  novo_lead: "Novo Lead",
-  reuniao: "Reunião",
-  contrato: "Contrato",
-  campanha: "Campanha",
-};
-
-function formatRelativeTime(date: Date) {
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const hours = Math.floor(diff / 3_600_000);
-  const days = Math.floor(diff / 86_400_000);
-  if (hours < 1) return "Agora há pouco";
-  if (hours < 24) return `há ${hours}h`;
-  return `há ${days}d`;
-}
-
-const CustomTooltip = ({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: { value: number }[];
-  label?: string;
-}) => {
-  if (active && payload && payload.length) {
+  if (isEmpty) {
     return (
-      <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-lg">
-        <p className="text-xs font-medium text-foreground">{label}</p>
-        <p className="text-sm font-bold text-primary">
-          {payload[0].value} leads
+      <div className="flex h-[300px] flex-col items-center justify-center text-center">
+        <Kanban className="h-10 w-10 text-muted-foreground opacity-20" />
+        <p className="mt-2 text-sm text-muted-foreground">
+          Nenhum lead no pipeline no momento
         </p>
       </div>
     );
   }
-  return null;
-};
+
+  return (
+    <div className="h-[300px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={filteredData}
+            cx="50%"
+            cy="50%"
+            innerRadius={60}
+            outerRadius={80}
+            paddingAngle={5}
+            dataKey="count"
+            nameKey="stage"
+          >
+            {filteredData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                const item = payload[0].payload as PipelineItem;
+                return (
+                  <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-lg">
+                    <p className="text-xs font-medium text-foreground">
+                      {item.stage}
+                    </p>
+                    <p className="text-sm font-bold text-primary">
+                      {item.count} lead(s)
+                    </p>
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
+          <Legend
+            verticalAlign="middle"
+            align="right"
+            layout="vertical"
+            iconType="circle"
+            formatter={(value) => (
+              <span className="text-xs text-muted-foreground">{value}</span>
+            )}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
 
 // ── Defaults ──────────────────────────────────────────────────────────────────
 
@@ -216,9 +235,7 @@ export default function DashboardPage() {
   }, []);
 
   const kpiData = dashboardData?.kpiData ?? DEFAULT_KPI;
-  const pipelineChartData: PipelineItem[] =
-    dashboardData?.pipelineChartData ?? [];
-  const activities: Activity[] = dashboardData?.activities ?? [];
+  const pipelineChartData: PipelineItem[] = dashboardData?.pipelineChartData ?? [];
   const atRiskClients: AtRiskClient[] = dashboardData?.atRiskClients ?? [];
 
   const toggleTask = async (id: string, currentStatus: boolean) => {
@@ -322,8 +339,7 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <h1>TODO</h1>
-              <p>Esse gráfico servirá para acomodar os leads por etapa até o fechamento do contrato</p>
+              <PipelineStagePieChart data={pipelineChartData} />
             </CardContent>
           </Card>
 
@@ -337,7 +353,10 @@ export default function DashboardPage() {
             <CardContent>
               <h1>TODO</h1>
               <p>Esse card servirá para acompanhar as atividades recentes</p>
-              <p>As atividades recentes serão as últimas 10 atividades registradas</p>
+              <p>
+                As atividades recentes serão as últimas 10 atividades
+                registradas
+              </p>
               <p>Exemplo: marcação de reunião, criação de cliente, etc.</p>
             </CardContent>
           </Card>

@@ -14,20 +14,13 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  AreaChart,
-  Area,
-  PieChart,
-  Pie,
-  Cell,
   LineChart,
-  ComposedChart,
   Line,
   Legend,
 } from "recharts";
 
 import {
   Download,
-  Share2,
   FileText,
   TrendingUp,
   Users,
@@ -49,13 +42,9 @@ import type {
   RelatoriosPayload,
   ClientGrowthItem,
   ChannelItem,
-  FunnelItem,
   RevenueItem,
   ClientReportItem,
-  KpiData,
 } from "@/app/api/relatorios/route";
-
-const COLORS = ["#5B5FE8", "#14B8A6", "#8B5CF6", "#22C55E", "#F59E0B"];
 
 export default function RelatoriosPage() {
   const [dateRange] = useState("Últimos 30 dias");
@@ -112,14 +101,7 @@ export default function RelatoriosPage() {
     );
   }
 
-  const {
-    kpiData,
-    clientGrowthData,
-    channelData,
-    funnelData,
-    revenueData,
-    clientReports,
-  } = payload;
+  const { kpiData, clientGrowthData, channelData, revenueData, clientReports } = payload;
 
   return (
     <AppShell title="Relatórios">
@@ -184,9 +166,6 @@ export default function RelatoriosPage() {
 
           {/* Channel Performance Chart */}
           <ChannelPerformanceChart data={channelData} />
-
-          {/* Funnel Distribution Chart */}
-          <FunnelDistributionChart data={funnelData} />
 
           {/* Revenue vs Previous Chart */}
           <RevenueChart data={revenueData} />
@@ -371,57 +350,6 @@ function ChannelPerformanceChart({ data }: { data: ChannelItem[] }) {
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function FunnelDistributionChart({ data }: { data: FunnelItem[] }) {
-  return (
-    <Card className="bg-card border-border">
-      <CardHeader>
-        <CardTitle className="text-base font-semibold">
-          Distribuição do Funil
-        </CardTitle>
-        <CardDescription>Volume de leads por etapa do pipeline</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col items-center justify-center">
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={100}
-                paddingAngle={5}
-                dataKey="value"
-              >
-                {data.map((_, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "var(--card)",
-                  borderColor: "var(--border)",
-                  borderRadius: "8px",
-                }}
-              />
-              <Legend
-                iconType="circle"
-                layout="vertical"
-                align="right"
-                verticalAlign="middle"
-                wrapperStyle={{ fontSize: "12px" }}
-              />
-            </PieChart>
           </ResponsiveContainer>
         </div>
       </CardContent>

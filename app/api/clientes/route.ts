@@ -21,7 +21,6 @@
  *   name           string  (2–100 chars)
  *   segment        string
  *   status         'Ativo' | 'Lead' | 'Inativo' | 'Em risco'
- *   plan           string
  *   contractValue  number  (positive)
  *   responsibleId? string  (UUID — padrão: usuário autenticado)
  *   contact.email  string  (email válido)
@@ -58,7 +57,9 @@ const createClienteSchema = z.object({
   logo: z.string().url().optional(),
   segment: z.string().min(1),
   status: z.enum(['Ativo', 'Lead', 'Inativo', 'Em risco']),
-  plan: z.string().min(1),
+  source: z.enum(['indicacao', 'instagram', 'site', 'prospeccao', 'evento']),
+  sourceReferrer: z.string().optional(),
+  servicos: z.array(z.enum(['social_media', 'trafego_pago', 'branding', 'conteudo', 'design', 'seo'])).default([]),
   contractValue: z.number().positive(),
   responsibleId: z.string().uuid().optional(),
   contact: z.object({

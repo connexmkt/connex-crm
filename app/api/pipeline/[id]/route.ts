@@ -20,7 +20,9 @@
  *   contactPhone?   string  (8–50) | null
  *   estimatedValue? number  (≥ 0)
  *   responsibleId?  string  (UUID)
- *   source?         'site' | 'indicacao' | 'prospeccao'
+ *   source?         'site' | 'indicacao' | 'instagram' | 'prospeccao' | 'evento'
+ *   sourceReferrer? string | null
+ *   temperature?    'quente' | 'morno' | 'frio'
  *   lastContactAt?  string  (ISO datetime) | null
  *   nextAction?     string  (max: 500) | null
  *   nextActionDate? string  (date YYYY-MM-DD) | null
@@ -57,7 +59,7 @@ import {
   serverError,
 } from '@/lib/api/response'
 
-const LEAD_SOURCES = ['site', 'indicacao', 'prospeccao'] as const
+const LEAD_SOURCES = ['site', 'indicacao', 'instagram', 'prospeccao', 'evento'] as const
 
 const idSchema = z.string().uuid()
 
@@ -69,6 +71,8 @@ const updateLeadSchema = z.object({
   estimatedValue: z.number().min(0).optional(),
   responsibleId: z.string().uuid().optional(),
   source: z.enum(LEAD_SOURCES).optional(),
+  sourceReferrer: z.string().nullable().optional(),
+  temperature: z.enum(['quente', 'morno', 'frio']).optional(),
   lastContactAt: z.string().datetime().nullable().optional(),
   nextAction: z.string().max(500).nullable().optional(),
   nextActionDate: z.string().date().nullable().optional(),

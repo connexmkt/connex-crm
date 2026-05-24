@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CSS } from "@dnd-kit/utilities";
 import { AppShell } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,16 +28,13 @@ import {
 import {
   SortableContext,
   verticalListSortingStrategy,
-  useSortable,
 } from "@dnd-kit/sortable";
 
 import {
   Plus,
   X,
-  DollarSign,
   Loader2,
   Calendar,
-  Clock,
   AlertTriangle,
   Phone,
   Mail,
@@ -65,9 +61,14 @@ import {
   PIPELINE_STAGE_CONFIG as stageConfig,
   PIPELINE_STAGES as stages,
   LOST_REASON_OPTIONS,
+  LEAD_SOURCES_OPTIONS,
+  TEMPERATURE_CONFIG,
+  INTERACTION_KIND_CONFIG,
 } from "@/lib/constants/pipeline";
 
-// ─── Formatters ───────────────────────────────────────────────────────────────
+// ─── Components ───────────────────────────────────────────────────────────────
+import { PipelineLeadCard } from "./components/PipelineLeadCard";
+import { SortablePipelineLeadCard } from "./components/SortablePipelineLeadCard";
 
 function formatCurrency(value: number): string {
   if (value >= 1_000_000) return `R$ ${(value / 1_000_000).toFixed(1)}M`;
@@ -81,161 +82,6 @@ function formatDate(date: Date | string | undefined): string {
     day: "2-digit",
     month: "short",
   });
-}
-
-function formatRelativeDate(date: Date | string | undefined): string {
-  if (!date) return "—";
-  const d = new Date(date);
-  const diff = Math.floor((Date.now() - d.getTime()) / 86_400_000);
-  if (diff === 0) return "hoje";
-  if (diff === 1) return "ontem";
-  if (diff < 7) return `há ${diff} dias`;
-  return formatDate(d);
-}
-
-// ─── PipelineLeadCard ─────────────────────────────────────────────────────────
-
-function PipelineLeadCard({
-  lead,
-  isDragging = false,
-  onClick,
-}: {
-  lead: PipelineLead;
-  isDragging?: boolean;
-  onClick?: () => void;
-}) {
-  const isStale = lead.isStale;
-
-  return (
-    <div
-      onClick={onClick}
-      className={cn(
-        "cursor-pointer rounded-xl border bg-card p-4 transition-all select-none",
-        isDragging
-          ? "shadow-xl scale-[1.02] border-primary/40"
-          : "border-border hover:border-primary/20 hover:shadow-md",
-        isStale && !isDragging && "border-danger/30 bg-danger/5",
-      )}
-    >
-      {/* Header */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-foreground">
-            {lead.companyName}
-          </p>
-          <p className="truncate text-xs text-muted-foreground">
-            {lead.contactName}
-          </p>
-        </div>
-        <Badge
-          variant="outline"
-          className="shrink-0 text-[9px] px-1.5 py-0 border-border"
-        >
-          {lead.source === "prospeccao"
-            ? "Prosp."
-            : lead.source === "indicacao"
-              ? "Indic."
-              : "Site"}
-        </Badge>
-      </div>
-
-      {/* Estimated value */}
-      <div className="mt-2.5 flex items-center gap-1 text-sm font-bold text-foreground">
-        <DollarSign className="h-3.5 w-3.5 text-success" />
-        {formatCurrency(lead.estimatedValue)}
-      </div>
-
-      {/* Meeting date — only for reuniao_agendada */}
-      {lead.stage === "reuniao_agendada" && lead.meetingDate && (
-        <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-purple-500">
-          <Calendar className="h-3 w-3" />
-          Reunião: {formatDate(lead.meetingDate)}
-        </div>
-      )}
-
-      {/* Lost reason — only for perdido */}
-      {lead.stage === "perdido" && lead.lostReason && (
-        <div className="mt-2 rounded bg-danger/10 px-2 py-1 text-xs text-danger line-clamp-2">
-          {lead.lostReason}
-        </div>
-      )}
-
-      {/* Last contact */}
-      <p className="mt-2.5 text-xs text-muted-foreground">
-        Último contato: {formatRelativeDate(lead.lastContactAt)}
-      </p>
-
-      {/* Next action */}
-      {lead.nextAction && (
-        <div className="mt-1.5 rounded-md bg-secondary/60 px-2 py-1.5 text-xs">
-          <span className="text-muted-foreground">→ </span>
-          <span className="font-medium text-foreground">{lead.nextAction}</span>
-          {lead.nextActionDate && (
-            <span className="text-muted-foreground">
-              {" "}
-              até {formatDate(lead.nextActionDate)}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Footer */}
-      <div className="mt-3 flex items-center justify-between">
-        <div
-          className={cn(
-            "flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-            isStale
-              ? "bg-danger/15 text-danger"
-              : "bg-secondary text-muted-foreground",
-          )}
-        >
-          <Clock className="h-2.5 w-2.5" />
-          {lead.daysInStage}d nesta etapa
-          {isStale && <AlertTriangle className="h-2.5 w-2.5 ml-0.5" />}
-        </div>
-        <Avatar className="h-6 w-6">
-          <AvatarImage src={lead.responsible?.avatar} />
-          <AvatarFallback className="bg-primary/10 text-[9px] text-primary">
-            {lead.responsible?.name
-              ?.split(" ")
-              .map((n) => n[0])
-              .join("") ?? "?"}
-          </AvatarFallback>
-        </Avatar>
-      </div>
-    </div>
-  );
-}
-
-// ─── SortablePipelineLeadCard ─────────────────────────────────────────────────
-
-function SortablePipelineLeadCard({
-  lead,
-  onClick,
-}: {
-  lead: PipelineLead;
-  onClick: () => void;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: lead.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.35 : 1,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <PipelineLeadCard lead={lead} onClick={onClick} />
-    </div>
-  );
 }
 
 // ─── KanbanColumn ─────────────────────────────────────────────────────────────
@@ -350,6 +196,51 @@ function LeadDetailDrawer({
   onStageChange: (lead: PipelineLead, stage: PipelineStage) => void;
 }) {
   const config = stageConfig[lead.stage];
+  const tempConfig = TEMPERATURE_CONFIG[lead.temperature] ?? TEMPERATURE_CONFIG.morno;
+  const [interactions, setInteractions] = useState<any[]>([]);
+  const [loadingInteractions, setLoadingInteractions] = useState(false);
+  const [newInteraction, setNewInteraction] = useState({
+    kind: "whatsapp" as any,
+    description: "",
+  });
+  const [submittingInteraction, setSubmittingInteraction] = useState(false);
+
+  useEffect(() => {
+    if (lead.id) {
+      setLoadingInteractions(true);
+      fetch(`/api/pipeline/${lead.id}/interactions`)
+        .then((r) => r.json())
+        .then((json) => setInteractions(json.data || []))
+        .catch((err) => console.error("Erro ao carregar interações", err))
+        .finally(() => setLoadingInteractions(false));
+    }
+  }, [lead.id]);
+
+  async function handleAddInteraction(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newInteraction.description.trim()) return;
+
+    setSubmittingInteraction(true);
+    try {
+      const res = await fetch(`/api/pipeline/${lead.id}/interactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newInteraction),
+      });
+
+      if (!res.ok) throw new Error("Erro ao adicionar interação");
+
+      const json = await res.json();
+      setInteractions((prev) => [json.data, ...prev]);
+      setNewInteraction({ kind: "whatsapp", description: "" });
+      toast.success("Interação registrada!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao registrar interação");
+    } finally {
+      setSubmittingInteraction(false);
+    }
+  }
 
   return (
     <motion.div
@@ -376,17 +267,30 @@ function LeadDetailDrawer({
               {lead.companyName}
             </h2>
             <p className="text-sm text-muted-foreground">{lead.contactName}</p>
-            <Badge
-              variant="outline"
-              className="mt-1 text-[10px]"
-              style={{
-                color: config.color,
-                borderColor: `${config.color}40`,
-                backgroundColor: `${config.color}10`,
-              }}
-            >
-              {config.icon} {config.label}
-            </Badge>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              <Badge
+                variant="outline"
+                className="text-[10px]"
+                style={{
+                  color: config.color,
+                  borderColor: `${config.color}40`,
+                  backgroundColor: `${config.color}10`,
+                }}
+              >
+                {config.icon} {config.label}
+              </Badge>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[10px] border-transparent",
+                  tempConfig.bg,
+                  tempConfig.color
+                )}
+              >
+                {tempConfig.icon}{" "}
+                {tempConfig.label}
+              </Badge>
+            </div>
           </div>
         </div>
         <Button
@@ -458,43 +362,105 @@ function LeadDetailDrawer({
           </div>
         </div>
 
-        {/* Timeline */}
-        <div className="space-y-2">
+        {/* Histórico de Interações */}
+        <div className="space-y-4">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Linha do Tempo
+            Histórico de Interações
           </h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Último contato</span>
-              <span className="font-medium text-foreground">
-                {formatDate(lead.lastContactAt)}
-              </span>
-            </div>
-            {lead.meetingDate && (
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">
-                  <Calendar className="inline h-3.5 w-3.5 mr-1 mb-0.5" />
-                  Reunião
-                </span>
-                <span className="font-medium text-purple-500">
-                  {formatDate(lead.meetingDate)}
-                </span>
-              </div>
-            )}
-            {lead.nextAction && (
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-muted-foreground shrink-0">
-                  Próxima ação
-                </span>
-                <span className="font-medium text-foreground text-right">
-                  {lead.nextAction}
-                  {lead.nextActionDate && (
-                    <span className="text-muted-foreground">
-                      {" "}
-                      ({formatDate(lead.nextActionDate)})
-                    </span>
+
+          {/* Form de nova interação */}
+          <form
+            onSubmit={handleAddInteraction}
+            className="space-y-3 rounded-lg border border-border p-3 bg-secondary/20"
+          >
+            <div className="flex gap-2">
+              <Select
+                value={newInteraction.kind}
+                onValueChange={(v) =>
+                  setNewInteraction((prev) => ({ ...prev, kind: v }))
+                }
+              >
+                <SelectTrigger className="h-8 w-[120px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(INTERACTION_KIND_CONFIG).map(
+                    ([key, config]) => (
+                      <SelectItem key={key} value={key}>
+                        <span className="flex items-center gap-2">
+                          <span>{config.icon}</span>
+                          <span>{config.label}</span>
+                        </span>
+                      </SelectItem>
+                    ),
                   )}
-                </span>
+                </SelectContent>
+              </Select>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={submittingInteraction || !newInteraction.description}
+                className="h-8 ml-auto text-xs"
+              >
+                {submittingInteraction ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  "Adicionar"
+                )}
+              </Button>
+            </div>
+            <Textarea
+              placeholder="Descreva o que aconteceu..."
+              value={newInteraction.description}
+              onChange={(e) =>
+                setNewInteraction((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
+              className="min-h-[60px] text-xs resize-none"
+            />
+          </form>
+
+          {/* Lista de interações */}
+          <div className="space-y-4 pt-2">
+            {loadingInteractions ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : interactions.length === 0 ? (
+              <p className="text-center text-xs text-muted-foreground py-4">
+                Nenhuma interação registrada.
+              </p>
+            ) : (
+              <div className="relative space-y-4 pl-4 before:absolute before:left-1.5 before:top-2 before:h-[calc(100%-16px)] before:w-px before:bg-border">
+                {interactions.map((interaction) => (
+                  <div key={interaction.id} className="relative flex gap-3">
+                    <div className="absolute -left-[13px] top-1 flex h-2.5 w-2.5 items-center justify-center rounded-full border-2 border-primary bg-card" />
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase text-primary flex items-center gap-1">
+                          {INTERACTION_KIND_CONFIG[interaction.kind as keyof typeof INTERACTION_KIND_CONFIG]?.icon}{" "}
+                          {INTERACTION_KIND_CONFIG[interaction.kind as keyof typeof INTERACTION_KIND_CONFIG]?.label}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(interaction.occurredAt).toLocaleString(
+                            "pt-BR",
+                            {
+                              day: "2-digit",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
+                        </span>
+                      </div>
+                      <p className="text-xs text-foreground leading-relaxed">
+                        {interaction.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -521,13 +487,17 @@ function LeadDetailDrawer({
           </div>
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">Origem</span>
-            <Badge variant="outline" className="text-xs capitalize">
-              {lead.source === "prospeccao"
-                ? "Prospecção"
-                : lead.source === "indicacao"
-                  ? "Indicação"
-                  : "Site"}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs capitalize">
+                {LEAD_SOURCES_OPTIONS.find((o) => o.value === lead.source)
+                  ?.label || lead.source}
+              </Badge>
+              {lead.source === "indicacao" && lead.sourceReferrer && (
+                <Badge variant="outline" className="text-[10px] py-0 h-4">
+                  {lead.sourceReferrer}
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
 
@@ -583,7 +553,8 @@ function LeadDetailDrawer({
 
 // ─── Novo Lead Dialog ─────────────────────────────────────────────────────────
 
-type LeadSource = "site" | "indicacao" | "prospeccao";
+type LeadSource = "site" | "indicacao" | "prospeccao" | "instagram" | "evento";
+type LeadTemperature = "quente" | "morno" | "frio";
 
 interface NovoLeadForm {
   companyName: string;
@@ -592,6 +563,8 @@ interface NovoLeadForm {
   contactPhone: string;
   estimatedValue: string;
   source: LeadSource;
+  sourceReferrer: string;
+  temperature: LeadTemperature;
   nextAction: string;
   nextActionDate: string;
   meetingDate: string;
@@ -616,6 +589,8 @@ function NovoLeadDialog({
     contactPhone: "",
     estimatedValue: "",
     source: "prospeccao",
+    sourceReferrer: "",
+    temperature: "morno",
     nextAction: "",
     nextActionDate: "",
     meetingDate: "",
@@ -646,6 +621,8 @@ function NovoLeadDialog({
         estimatedValue: Number(form.estimatedValue),
         stage: defaultStage,
         source: form.source,
+        sourceReferrer: form.sourceReferrer || undefined,
+        temperature: form.temperature,
         staleAfterDays: Number(form.staleAfterDays) || 7,
       };
       if (form.contactEmail.trim())
@@ -749,18 +726,52 @@ function NovoLeadDialog({
               <Label htmlFor="source">Origem *</Label>
               <Select
                 value={form.source}
-                onValueChange={(v) => update("source", v)}
+                onValueChange={(v: LeadSource) => update("source", v)}
               >
                 <SelectTrigger id="source">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="prospeccao">Prospecção</SelectItem>
-                  <SelectItem value="indicacao">Indicação</SelectItem>
-                  <SelectItem value="site">Site</SelectItem>
+                  {LEAD_SOURCES_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="temperature">Temperatura *</Label>
+              <Select
+                value={form.temperature}
+                onValueChange={(v: LeadTemperature) => update("temperature", v)}
+              >
+                <SelectTrigger id="temperature">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(TEMPERATURE_CONFIG).map(([key, config]) => (
+                    <SelectItem key={key} value={key}>
+                      {config.icon} {config.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {form.source === "indicacao" && (
+              <div className="col-span-2 space-y-1.5">
+                <Label htmlFor="sourceReferrer">Quem indicou? *</Label>
+                <Input
+                  id="sourceReferrer"
+                  placeholder="Nome da pessoa ou empresa"
+                  value={form.sourceReferrer}
+                  onChange={(e) => update("sourceReferrer", e.target.value)}
+                  required
+                />
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="staleAfterDays">Alertar após (dias)</Label>

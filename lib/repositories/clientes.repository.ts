@@ -13,7 +13,9 @@ interface ClientRow {
   contract_value: number
   last_activity: string
   onboarding_date: string
-  plan: string
+  source: Client['source']
+  source_referrer: string | null
+  servicos: string[]
   contact: {
     email: string
     phone: string
@@ -38,7 +40,9 @@ function rowToClient(row: ClientRow): Client {
     contractValue: row.contract_value,
     lastActivity: new Date(row.last_activity),
     onboardingDate: new Date(row.onboarding_date),
-    plan: row.plan,
+    source: row.source,
+    sourceReferrer: row.source_referrer ?? undefined,
+    servicos: row.servicos as Client['servicos'],
     contact: row.contact,
     contractStartDate: row.contract_start_date ? new Date(row.contract_start_date) : undefined,
     contractRenewalDate: row.contract_renewal_date ? new Date(row.contract_renewal_date) : undefined,
@@ -62,7 +66,9 @@ function clientToRow(
     onboarding_date: input.onboardingDate instanceof Date
       ? input.onboardingDate.toISOString()
       : new Date(input.onboardingDate).toISOString(),
-    plan: input.plan,
+    source: input.source,
+    source_referrer: input.sourceReferrer ?? null,
+    servicos: input.servicos,
     contact: input.contact,
     contract_start_date: input.contractStartDate
       ? (input.contractStartDate instanceof Date
@@ -89,12 +95,13 @@ export type FindManyParams = {
 
 export type InsertInput = Omit<Client, 'id'> & { responsible: User }
 export type UpdateInput = Partial<
-  Omit<Client, 'id' | 'responsible' | 'contractStartDate' | 'contractRenewalDate' | 'internalNotes'>
+  Omit<Client, 'id' | 'responsible' | 'contractStartDate' | 'contractRenewalDate' | 'internalNotes' | 'sourceReferrer'>
 > & {
   responsible?: User
   contractStartDate?: Date | null
   contractRenewalDate?: Date | null
   internalNotes?: string | null
+  sourceReferrer?: string | null
 }
 
 // ── Repository ────────────────────────────────────────────────────────────────
@@ -159,7 +166,9 @@ export const ClientesRepository = {
     if (input.status !== undefined) patch.status = input.status
     if (input.responsible !== undefined) patch.responsible = input.responsible
     if (input.contractValue !== undefined) patch.contract_value = input.contractValue
-    if (input.plan !== undefined) patch.plan = input.plan
+    if (input.source !== undefined) patch.source = input.source
+    if (input.sourceReferrer !== undefined) patch.source_referrer = input.sourceReferrer ?? null
+    if (input.servicos !== undefined) patch.servicos = input.servicos
     if (input.contact !== undefined) patch.contact = input.contact
     if (input.lastActivity !== undefined) {
       patch.last_activity = input.lastActivity instanceof Date

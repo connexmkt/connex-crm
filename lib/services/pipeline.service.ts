@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { PipelineStage, LeadSource } from "@/lib/types";
+import type { PipelineStage, LeadSource, PipelineLead } from "@/lib/types";
 import { ClientesService } from "./clientes.service";
 
 import {
@@ -24,6 +24,8 @@ export type CreateLeadInput = {
   nextActionDate?: string;
   meetingDate?: string;
   source: LeadSource;
+  sourceReferrer?: string;
+  temperature?: PipelineLead['temperature'];
   notes?: string;
   staleAfterDays?: number;
 };
@@ -40,6 +42,8 @@ export type UpdateLeadInput = {
   nextActionDate?: string | null;
   meetingDate?: string | null;
   source?: LeadSource;
+  sourceReferrer?: string | null;
+  temperature?: PipelineLead['temperature'];
   notes?: string | null;
   staleAfterDays?: number;
 };
@@ -104,6 +108,8 @@ export const PipelineService = {
         : undefined,
       meetingDate: input.meetingDate ? new Date(input.meetingDate) : undefined,
       source: input.source,
+      sourceReferrer: input.sourceReferrer,
+      temperature: input.temperature ?? "morno",
       notes: input.notes,
       staleAfterDays: input.staleAfterDays ?? 7,
     };
@@ -141,6 +147,8 @@ export const PipelineService = {
         : null;
     }
     if (input.source !== undefined) patch.source = input.source;
+    if (input.sourceReferrer !== undefined) patch.sourceReferrer = input.sourceReferrer;
+    if (input.temperature !== undefined) patch.temperature = input.temperature;
     if (input.notes !== undefined) patch.notes = input.notes;
     if (input.staleAfterDays !== undefined)
       patch.staleAfterDays = input.staleAfterDays;
@@ -203,7 +211,9 @@ export const PipelineService = {
           contractValue: lead.estimatedValue,
           responsibleId: lead.responsible.id,
           segment: "A definir",
-          plan: "A definir",
+          source: lead.source as any, // Cast to any because LeadSource is a subset of ClienteSource
+          sourceReferrer: lead.sourceReferrer,
+          servicos: [],
           contact: {
             email: lead.contactEmail || `lead-${lead.id}@pipeline.connex`,
             phone: lead.contactPhone || "00000000",

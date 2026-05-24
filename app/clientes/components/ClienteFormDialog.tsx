@@ -4,7 +4,9 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Client } from "@/lib/types";
+import { CLIENTE_SOURCES_OPTIONS, CLIENTE_SERVICOS_OPTIONS } from "@/lib/constants/clientes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -35,7 +37,9 @@ export default function ClienteFormDialog({
       name: "",
       segment: "",
       status: "Lead",
-      plan: "",
+      source: "prospeccao",
+      sourceReferrer: "",
+      servicos: [],
       contractValue: 0,
       contact: { email: "", phone: "", website: "" },
       contractStartDate: "",
@@ -50,7 +54,9 @@ export default function ClienteFormDialog({
         name: initialData.name,
         segment: initialData.segment,
         status: initialData.status,
-        plan: initialData.plan,
+        source: initialData.source,
+        sourceReferrer: initialData.sourceReferrer || "",
+        servicos: initialData.servicos || [],
         contractValue: initialData.contractValue,
         contact: {
           email: initialData.contact.email,
@@ -72,7 +78,9 @@ export default function ClienteFormDialog({
         name: "",
         segment: "",
         status: "Lead",
-        plan: "",
+        source: "prospeccao",
+        sourceReferrer: "",
+        servicos: [],
         contractValue: 0,
         contact: { email: "", phone: "", website: "" },
         contractStartDate: "",
@@ -207,16 +215,27 @@ export default function ClienteFormDialog({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {/* Plano */}
+              {/* Origem */}
               <FormField
                 control={form.control}
-                name="plan"
+                name="source"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Plano</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Premium" {...field} />
-                    </FormControl>
+                    <FormLabel>Origem</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {CLIENTE_SOURCES_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -243,6 +262,76 @@ export default function ClienteFormDialog({
                 )}
               />
             </div>
+
+            {/* Referrer condicional */}
+            {form.watch("source") === "indicacao" && (
+              <FormField
+                control={form.control}
+                name="sourceReferrer"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quem indicou?</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nome da pessoa ou empresa" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Serviços */}
+            <FormField
+              control={form.control}
+              name="servicos"
+              render={() => (
+                <FormItem>
+                  <div className="mb-4">
+                    <FormLabel>Serviços Contratados</FormLabel>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {CLIENTE_SERVICOS_OPTIONS.map((servico) => (
+                      <FormField
+                        key={servico.value}
+                        control={form.control}
+                        name="servicos"
+                        render={({ field }) => {
+                          return (
+                            <FormItem
+                              key={servico.value}
+                              className="flex flex-row items-start space-x-3 space-y-0"
+                            >
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value?.includes(servico.value)}
+                                  onCheckedChange={(checked) => {
+                                    return checked
+                                      ? field.onChange([
+                                          ...field.value,
+                                          servico.value,
+                                        ])
+                                      : field.onChange(
+                                          field.value?.filter(
+                                            (value: string) =>
+                                              value !== servico.value,
+                                          ),
+                                        );
+                                  }}
+                                />
+                              </FormControl>
+                              <FormLabel className="text-sm font-normal">
+                                {servico.label}
+                              </FormLabel>
+                            </FormItem>
+                          );
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="pt-1">
               <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

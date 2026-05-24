@@ -6,7 +6,11 @@ export const novoClienteSchema = z.object({
   status: z.enum(["Ativo", "Lead", "Inativo", "Em risco"], {
     required_error: "Selecione um status",
   }),
-  plan: z.string().min(1, "Plano é obrigatório"),
+  source: z.enum(["indicacao", "instagram", "site", "prospeccao", "evento"], {
+    required_error: "Selecione a origem",
+  }),
+  sourceReferrer: z.string().optional(),
+  servicos: z.array(z.enum(['social_media', 'trafego_pago', 'branding', 'conteudo', 'design', 'seo'])).default([]),
   contractValue: z.coerce
     .number({ invalid_type_error: "Insira um valor válido" })
     .positive("Valor deve ser maior que zero"),
@@ -18,6 +22,14 @@ export const novoClienteSchema = z.object({
   contractStartDate: z.string().optional().or(z.literal("")),
   contractRenewalDate: z.string().optional().or(z.literal("")),
   internalNotes: z.string().max(5000).optional(),
+}).refine((data) => {
+  if (data.source === "indicacao" && !data.sourceReferrer) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Quem indicou é obrigatório",
+  path: ["sourceReferrer"],
 });
 
 export type NovoClienteForm = z.infer<typeof novoClienteSchema>;

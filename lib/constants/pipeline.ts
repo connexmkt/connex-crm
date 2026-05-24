@@ -1,4 +1,4 @@
-import type { PipelineStage } from "@/lib/types";
+import type { PipelineStage, LeadSource, LeadTemperature, LeadInteractionKind } from "@/lib/types";
 
 export const PIPELINE_STAGE_CONFIG: Record<
   PipelineStage,
@@ -68,3 +68,31 @@ export const LOST_REASON_OPTIONS = [
 ] as const;
 
 export type LostReason = (typeof LOST_REASON_OPTIONS)[number];
+
+export const LEAD_SOURCES_OPTIONS: { value: LeadSource; label: string; showReferrer?: boolean }[] = [
+  { value: "prospeccao", label: "Prospecção" },
+  { value: "indicacao", label: "Indicação", showReferrer: true },
+  { value: "instagram", label: "Instagram" },
+  { value: "site", label: "Site" },
+  { value: "evento", label: "Evento" },
+];
+
+export const TEMPERATURE_CONFIG: Record<
+  LeadTemperature,
+  { label: string; icon: string; color: string; bg: string }
+> = {
+  quente: { label: "Quente", icon: "🔥", color: "#EF4444", bg: "bg-red-500/10" },
+  morno: { label: "Morno", icon: "🌡️", color: "#F59E0B", bg: "bg-orange-500/10" },
+  frio: { label: "Frio", icon: "❄️", color: "#3B82F6", bg: "bg-blue-500/10" },
+};
+
+export const INTERACTION_KIND_CONFIG: Record<
+  LeadInteractionKind,
+  { label: string; icon: string }
+> = {
+  whatsapp: { label: "WhatsApp", icon: "💬" },
+  email: { label: "E-mail", icon: "📧" },
+  ligacao: { label: "Ligação", icon: "📞" },
+  reuniao: { label: "Reunião", icon: "👥" },
+  outro: { label: "Outro", icon: "📝" },
+};

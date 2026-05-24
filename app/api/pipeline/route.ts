@@ -26,7 +26,9 @@
  *   estimatedValue number  (≥ 0)
  *   stage?         PipelineStage  (default: 'novo_lead')
  *   responsibleId? string  (UUID — padrão: usuário autenticado)
- *   source         'site' | 'indicacao' | 'prospeccao'
+ *   source         'site' | 'indicacao' | 'instagram' | 'prospeccao' | 'evento'
+ *   sourceReferrer? string
+ *   temperature?   'quente' | 'morno' | 'frio' (default: 'morno')
  *   lastContactAt? string  (ISO datetime)
  *   nextAction?    string  (max: 500)
  *   nextActionDate? string (date YYYY-MM-DD)
@@ -62,7 +64,7 @@ const PIPELINE_STAGES = [
   'perdido',
 ] as const
 
-const LEAD_SOURCES = ['site', 'indicacao', 'prospeccao'] as const
+const LEAD_SOURCES = ['site', 'indicacao', 'instagram', 'prospeccao', 'evento'] as const
 
 const listQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -81,6 +83,8 @@ const createLeadSchema = z.object({
   stage: z.enum(PIPELINE_STAGES).default('novo_lead'),
   responsibleId: z.string().uuid().optional(),
   source: z.enum(LEAD_SOURCES).default('prospeccao'),
+  sourceReferrer: z.string().optional(),
+  temperature: z.enum(['quente', 'morno', 'frio']).default('morno'),
   lastContactAt: z.string().datetime().optional(),
   nextAction: z.string().max(500).optional(),
   nextActionDate: z.string().date().optional(),

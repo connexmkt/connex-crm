@@ -15,8 +15,9 @@
 
 import { createClient } from "@/lib/server";
 import { ok, unauthorized, serverError } from "@/lib/api/response";
-import type { Activity, Task, Client, User, PipelineStage } from "@/lib/types";
+import type { Atividade, Task, Client, User, PipelineStage } from "@/lib/types";
 import { TasksService } from "@/lib/services/tasks.service";
+import { AtividadesService } from "@/lib/services/atividades.service";
 
 import {
   PIPELINE_STAGE_CONFIG,
@@ -46,7 +47,7 @@ type PipelineChartItem = {
 export type DashboardPayload = {
   kpiData: KpiData;
   pipelineChartData: PipelineChartItem[];
-  activities: Activity[];
+  activities: Atividade[];
   tasks: Task[];
   atRiskClients: Client[];
 };
@@ -63,7 +64,9 @@ interface ClientRow {
   contract_value: number;
   last_activity: string;
   onboarding_date: string;
-  plan: string;
+  source: Client["source"];
+  source_referrer: string | null;
+  servicos: Client["servicos"];
   contact: { email: string; phone: string; website?: string };
 }
 
@@ -78,7 +81,9 @@ function rowToClient(row: ClientRow): Client {
     contractValue: row.contract_value,
     lastActivity: new Date(row.last_activity),
     onboardingDate: new Date(row.onboarding_date),
-    plan: row.plan,
+    source: row.source,
+    sourceReferrer: row.source_referrer ?? undefined,
+    servicos: row.servicos || [],
     contact: row.contact,
   };
 }
@@ -97,7 +102,7 @@ export async function GET() {
     const { data: clientRows, error: clientError } = await supabase
       .from("clientes")
       .select(
-        "id, name, logo, segment, status, responsible, contract_value, last_activity, onboarding_date, plan, contact",
+        "id, name, logo, segment, status, responsible, contract_value, last_activity, onboarding_date, source, source_referrer, servicos, contact",
       );
 
     if (clientError) throw clientError;
@@ -141,6 +146,9 @@ export async function GET() {
       limit: 5,
     });
 
+    // 5. Atividades recentes (últimas 10 de toda a organização)
+    const activities = await AtividadesService.list(supabase, { limit: 10 });
+
     const kpiData: KpiData = {
       totalClientes,
       clientesVariacao: 0,
@@ -155,7 +163,7 @@ export async function GET() {
     const payload: DashboardPayload = {
       kpiData,
       pipelineChartData,
-      activities: [], // TODO: Implementar tabela de atividades
+      activities,
       tasks,
       atRiskClients,
     };

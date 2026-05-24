@@ -14,7 +14,6 @@
  *   name?           string  (2–100 chars)
  *   segment?        string
  *   status?         'Ativo' | 'Lead' | 'Inativo' | 'Em risco'
- *   plan?           string
  *   contractValue?  number  (positive)
  *   logo?           string  (URL)
  *   contact?        { email, phone, website? }
@@ -56,7 +55,9 @@ const updateClienteSchema = z.object({
   logo: z.string().url().optional(),
   segment: z.string().min(1).optional(),
   status: z.enum(["Ativo", "Lead", "Inativo", "Em risco"]).optional(),
-  plan: z.string().min(1).optional(),
+  source: z.enum(["indicacao", "instagram", "site", "prospeccao", "evento"]).optional(),
+  sourceReferrer: z.string().nullable().optional(),
+  servicos: z.array(z.enum(['social_media', 'trafego_pago', 'branding', 'conteudo', 'design', 'seo'])).optional(),
   contractValue: z.number().positive().optional(),
   contact: z
     .object({

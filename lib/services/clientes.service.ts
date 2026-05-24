@@ -12,7 +12,9 @@ export type CreateClienteInput = {
   logo?: string
   segment: string
   status: Client['status']
-  plan: string
+  source: Client['source']
+  sourceReferrer?: string
+  servicos: Client['servicos']
   contractValue: number
   responsibleId: string
   contact: {
@@ -30,7 +32,9 @@ export type UpdateClienteInput = {
   logo?: string
   segment?: string
   status?: Client['status']
-  plan?: string
+  source?: Client['source']
+  sourceReferrer?: string | null
+  servicos?: Client['servicos']
   contractValue?: number
   contact?: {
     email: string
@@ -79,7 +83,9 @@ export const ClientesService = {
         role: profile.role,
       },
       contractValue: input.contractValue,
-      plan: input.plan,
+      source: input.source,
+      sourceReferrer: input.sourceReferrer,
+      servicos: input.servicos,
       contact: input.contact,
       onboardingDate: new Date(),
       lastActivity: new Date(),
@@ -101,7 +107,9 @@ export const ClientesService = {
     if (input.logo !== undefined) updatePayload.logo = input.logo
     if (input.segment !== undefined) updatePayload.segment = input.segment
     if (input.status !== undefined) updatePayload.status = input.status
-    if (input.plan !== undefined) updatePayload.plan = input.plan
+    if (input.source !== undefined) updatePayload.source = input.source
+    if (input.sourceReferrer !== undefined) updatePayload.sourceReferrer = input.sourceReferrer
+    if (input.servicos !== undefined) updatePayload.servicos = input.servicos
     if (input.contractValue !== undefined) updatePayload.contractValue = input.contractValue
     if (input.contact !== undefined) updatePayload.contact = input.contact
     if (input.contractStartDate !== undefined) {

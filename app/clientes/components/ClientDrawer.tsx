@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Activity, Campaign, Client } from "@/lib/types";
+import { CLIENTE_SOURCES_OPTIONS, CLIENTE_SERVICOS_OPTIONS } from "@/lib/constants/clientes";
 
 // ─── Components ─────────────────────────────────────────────────────────────
 import ArquivosTab from "./ArquivosTab";
@@ -82,9 +83,6 @@ export default function ClientDrawer({
             R$ {client.contractValue.toLocaleString("pt-BR")}
           </span>
           <span className="text-muted-foreground">/mês</span>
-          <Badge variant="secondary" className="ml-auto text-xs">
-            {client.plan}
-          </Badge>
         </div>
       </div>
 
@@ -222,6 +220,49 @@ export default function ClientDrawer({
                   <span className="font-medium text-foreground">
                     {new Date(client.lastActivity).toLocaleDateString("pt-BR")}
                   </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Origem & Serviços
+              </h3>
+              <div className="space-y-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Origem</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">
+                      {CLIENTE_SOURCES_OPTIONS.find((o) => o.value === client.source)
+                        ?.label || client.source}
+                    </span>
+                    {client.source === "indicacao" && client.sourceReferrer && (
+                      <Badge variant="outline" className="text-[10px] py-0 h-4">
+                        {client.sourceReferrer}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs text-muted-foreground">Serviços</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {client.servicos.length > 0 ? (
+                      client.servicos.map((s) => (
+                        <Badge
+                          key={s}
+                          variant="secondary"
+                          className="text-[10px] bg-primary/5 text-primary border-primary/10"
+                        >
+                          {CLIENTE_SERVICOS_OPTIONS.find((o) => o.value === s)
+                            ?.label || s}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">
+                        Nenhum serviço registrado
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

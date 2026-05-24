@@ -18,6 +18,8 @@ interface PipelineLeadRow {
   meeting_date: string | null
   lost_reason: string | null
   source: LeadSource
+  source_referrer: string | null
+  temperature: PipelineLead['temperature']
   notes: string | null
   stale_after_days: number
   stage_entered_at: string
@@ -49,6 +51,8 @@ function rowToLead(row: PipelineLeadRow): PipelineLead {
     meetingDate: row.meeting_date ? new Date(row.meeting_date) : undefined,
     lostReason: row.lost_reason ?? undefined,
     source: row.source,
+    sourceReferrer: row.source_referrer ?? undefined,
+    temperature: row.temperature,
     notes: row.notes ?? undefined,
     staleAfterDays: row.stale_after_days,
     stageEnteredAt,
@@ -83,6 +87,8 @@ export type InsertPipelineInput = {
   nextActionDate?: Date
   meetingDate?: Date
   source: LeadSource
+  sourceReferrer?: string
+  temperature: PipelineLead['temperature']
   notes?: string
   staleAfterDays: number
 }
@@ -101,6 +107,8 @@ export type UpdatePipelineInput = Partial<{
   meetingDate: Date | null
   lostReason: string | null
   source: LeadSource
+  sourceReferrer: string | null
+  temperature: PipelineLead['temperature']
   notes: string | null
   staleAfterDays: number
   stageEnteredAt: Date
@@ -174,6 +182,8 @@ export const PipelineRepository = {
         ? input.meetingDate.toISOString().split('T')[0]
         : null,
       source: input.source,
+      source_referrer: input.sourceReferrer ?? null,
+      temperature: input.temperature,
       notes: input.notes ?? null,
       stale_after_days: input.staleAfterDays,
       stage_entered_at: new Date().toISOString(),
@@ -219,6 +229,8 @@ export const PipelineRepository = {
     }
     if (input.lostReason !== undefined) patch.lost_reason = input.lostReason
     if (input.source !== undefined) patch.source = input.source
+    if (input.sourceReferrer !== undefined) patch.source_referrer = input.sourceReferrer
+    if (input.temperature !== undefined) patch.temperature = input.temperature
     if (input.notes !== undefined) patch.notes = input.notes
     if (input.staleAfterDays !== undefined) patch.stale_after_days = input.staleAfterDays
     if (input.stageEnteredAt !== undefined) {

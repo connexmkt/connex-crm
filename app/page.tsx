@@ -9,7 +9,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { DashboardPayload } from "@/app/api/dashboard/route";
+import type { AtividadeTipo } from "@/lib/types";
 import { NovaTarefaDialog } from "@/components/tasks/nova-tarefa-dialog";
+import { NovaAtividadeDialog } from "@/components/atividades/nova-atividade-dialog";
 import { toast } from "sonner";
 
 import {
@@ -33,11 +35,17 @@ import {
   AlertTriangle,
   Phone,
   Trash2,
+  Video,
+  Mail,
+  MessageSquare,
+  FileText,
+  FileSignature,
+  Activity as ActivityIcon,
 } from "lucide-react";
 
 // ── Tipos locais ──────────────────────────────────────────────────────────────
 
-type Activity = DashboardPayload["activities"][number];
+type Atividade = DashboardPayload["activities"][number];
 type Task = DashboardPayload["tasks"][number];
 type AtRiskClient = DashboardPayload["atRiskClients"][number];
 type PipelineItem = DashboardPayload["pipelineChartData"][number];
@@ -201,6 +209,20 @@ function PipelineStagePieChart({ data }: { data: PipelineItem[] }) {
   );
 }
 
+// ── Config de tipos de atividade ──────────────────────────────────────────────
+
+const ATIVIDADE_TIPO_CONFIG: Record<
+  AtividadeTipo,
+  { label: string; icon: React.ElementType; color: string }
+> = {
+  reuniao:  { label: "Reunião",   icon: Video,          color: "text-primary bg-primary/10" },
+  ligacao:  { label: "Ligação",   icon: Phone,          color: "text-success bg-success/10" },
+  email:    { label: "E-mail",    icon: Mail,           color: "text-blue-500 bg-blue-500/10" },
+  mensagem: { label: "Mensagem",  icon: MessageSquare,  color: "text-purple-500 bg-purple-500/10" },
+  proposta: { label: "Proposta",  icon: FileText,       color: "text-warning bg-warning/10" },
+  contrato: { label: "Contrato",  icon: FileSignature,  color: "text-success bg-success/10" },
+};
+
 // ── Defaults ──────────────────────────────────────────────────────────────────
 
 const DEFAULT_KPI: DashboardPayload["kpiData"] = {
@@ -222,6 +244,7 @@ export default function DashboardPage() {
   );
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [atividades, setAtividades] = useState<Atividade[]>([]);
 
   useEffect(() => {
     fetch("/api/dashboard")
@@ -229,6 +252,7 @@ export default function DashboardPage() {
       .then((json: { data: DashboardPayload }) => {
         setDashboardData(json.data);
         setTasks(json.data.tasks || []);
+        setAtividades(json.data.activities || []);
       })
       .catch((err) => console.error("[Dashboard] fetch error:", err))
       .finally(() => setLoading(false));
@@ -285,7 +309,11 @@ export default function DashboardPage() {
   };
 
   const handleTaskCreated = (newTask: Task) => {
-    setTasks((prev) => [newTask, ...prev].slice(0, 10)); // Mantém limite visual
+    setTasks((prev) => [newTask, ...prev].slice(0, 10));
+  };
+
+  const handleAtividadeCriada = (nova: Atividade) => {
+    setAtividades((prev) => [nova, ...prev].slice(0, 10));
   };
 
   const priorityColors = {
@@ -345,19 +373,131 @@ export default function DashboardPage() {
 
           {/* Recent activities */}
           <Card className="bg-card border-border">
-            <CardHeader className="pb-4">
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
               <CardTitle className="font-heading text-base font-semibold">
                 Atividades Recentes
               </CardTitle>
+              <NovaAtividadeDialog onAtividadeCriada={handleAtividadeCriada} />
             </CardHeader>
             <CardContent>
-              <h1>TODO</h1>
-              <p>Esse card servirá para acompanhar as atividades recentes</p>
-              <p>
-                As atividades recentes serão as últimas 10 atividades
-                registradas
-              </p>
-              <p>Exemplo: marcação de reunião, criação de cliente, etc.</p>
+              {loading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex gap-3 animate-pulse">
+                      <div className="h-8 w-8 shrink-0 rounded-lg bg-secondary" />
+                      <div className="flex-1 space-y-2 pt-1">
+                        <div className="h-3 w-1/2 rounded bg-secondary" />
+                        <div className="h-2 w-3/4 rounded bg-secondary" />
+                        <div className="h-2 w-1/3 rounded bg-secondary" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : atividades.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <ActivityIcon className="h-10 w-10 text-muted-foreground opacity-20" />
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Nenhuma atividade registrada ainda
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Use o botão acima para registrar reuniões, ligações e mais
+                  </p>
+                </div>
+              ) : (
+                <div className="relative space-y-0">
+                  {/* Linha vertical da timeline */}
+                  <div className="absolute left-4 top-4 bottom-4 w-px bg-border" />
+
+                  {atividades.map((ativ, idx) => {
+                    const tipoKey = ativ.tipo as AtividadeTipo;
+                    const config = ATIVIDADE_TIPO_CONFIG[tipoKey];
+                    const Icon = config?.icon ?? ActivityIcon;
+                    const colorClass = config?.color ?? "text-muted-foreground bg-secondary";
+                    const isLast = idx === atividades.length - 1;
+
+                    return (
+                      <div
+                        key={ativ.id}
+                        className={cn(
+                          "relative flex gap-3 pb-4 pl-9",
+                          isLast && "pb-0",
+                        )}
+                      >
+                        {/* Ícone do tipo */}
+                        <div
+                          className={cn(
+                            "absolute left-0 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border",
+                            colorClass,
+                          )}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </div>
+
+                        {/* Conteúdo */}
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <span className="text-sm font-medium text-foreground">
+                                {config?.label ?? tipoKey}
+                              </span>
+                              <span className="mx-1 text-muted-foreground">·</span>
+                              <span className="text-sm text-muted-foreground truncate">
+                                {ativ.associacaoNome}
+                              </span>
+                            </div>
+                            <time className="shrink-0 text-[11px] text-muted-foreground">
+                              {new Date(ativ.ocorridoEm).toLocaleDateString("pt-BR", {
+                                day: "2-digit",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </time>
+                          </div>
+
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {ativ.descricao}
+                          </p>
+
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            {ativ.resultado && (
+                              <span className="text-[11px] text-muted-foreground">
+                                <span className="font-medium text-foreground">Resultado:</span>{" "}
+                                {ativ.resultado}
+                              </span>
+                            )}
+                            {ativ.proximoPasso && (
+                              <span className="text-[11px] text-primary">
+                                <span className="font-medium">Próximo:</span>{" "}
+                                {ativ.proximoPasso}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <Avatar className="h-4 w-4">
+                              <AvatarImage
+                                src={ativ.responsavel.avatar}
+                                alt={ativ.responsavel.name}
+                              />
+                              <AvatarFallback className="text-[8px] bg-primary/10 text-primary">
+                                {ativ.responsavel.name
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")
+                                  .slice(0, 2)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-[11px] text-muted-foreground">
+                              {ativ.responsavel.name}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

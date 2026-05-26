@@ -1,55 +1,37 @@
-import { useState } from "react";
-import { useClientes } from "../hooks/useClientes";
-import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { Client } from "@/lib/types";
-
-import {
-  AlertDialogHeader,
-  AlertDialogFooter,
-} from "@/components/ui/alert-dialog";
-
+import type { Client } from "@/lib/types";
 import {
   AlertDialog,
-  AlertDialogContent,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogCancel,
   AlertDialogAction,
-} from "@radix-ui/react-alert-dialog";
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-export default function DeleteModal() {
-  const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const search = "";
-  const statusFilter = "Todos";
-  const debouncedSearch = useDebouncedValue(search, 300);
-  const { deleteCliente } = useClientes(debouncedSearch, statusFilter);
+interface DeleteModalProps {
+  client: Client | null;
+  onConfirm: (client: Client) => void;
+  onCancel: () => void;
+}
 
+export default function DeleteModal({ client, onConfirm, onCancel }: DeleteModalProps) {
   return (
-    <AlertDialog
-      open={!!deleteTarget}
-      onOpenChange={(open) => !open && setDeleteTarget(null)}
-    >
+    <AlertDialog open={!!client} onOpenChange={(open) => !open && onCancel()}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Excluir cliente?</AlertDialogTitle>
           <AlertDialogDescription>
             Esta ação não pode ser desfeita. O cliente{" "}
-            <strong>{deleteTarget?.name}</strong> será removido permanentemente.
+            <strong>{client?.name}</strong> será removido permanentemente.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel onClick={onCancel}>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             className="bg-danger text-white hover:bg-danger/90"
-            onClick={async () => {
-              if (!deleteTarget) return;
-              const success = await deleteCliente(deleteTarget);
-              if (success && selectedClient?.id === deleteTarget.id) {
-                setSelectedClient(null);
-              }
-              setDeleteTarget(null);
-            }}
+            onClick={() => client && onConfirm(client)}
           >
             Excluir
           </AlertDialogAction>

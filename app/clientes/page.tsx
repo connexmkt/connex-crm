@@ -35,7 +35,7 @@ export default function ClientesPage() {
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
-  const { clientList, isLoading, upsertClient, updateClient } = useClientes(debouncedSearch, statusFilter);
+  const { clientList, isLoading, upsertClient, updateClient, deleteCliente } = useClientes(debouncedSearch, statusFilter);
 
   const filtered = clientList;
 
@@ -118,7 +118,7 @@ export default function ClientesPage() {
             onDelete={setDeleteTarget}
           />
         ) : (
-          <GridView clients={filtered} onView={setSelectedClient} />
+          <GridView clients={filtered} onView={setSelectedClient} onDelete={setDeleteTarget} />
         )}
       </div>
 
@@ -146,7 +146,17 @@ export default function ClientesPage() {
       </AnimatePresence>
 
       {/* Delete confirmation */}
-      <DeleteModal />
+      <DeleteModal
+        client={deleteTarget}
+        onConfirm={async (client) => {
+          const success = await deleteCliente(client);
+          if (success && selectedClient?.id === client.id) {
+            setSelectedClient(null);
+          }
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
 
       {/* Cliente Form Dialog */}
       <ClienteFormDialog

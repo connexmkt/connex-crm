@@ -66,7 +66,7 @@ interface ClientRow {
   onboarding_date: string;
   source: Client["source"];
   source_referrer: string | null;
-  servicos: Client["servicos"];
+  servicos_contratados: Client["servicos"];
   contact: { email: string; phone: string; website?: string };
 }
 
@@ -83,7 +83,7 @@ function rowToClient(row: ClientRow): Client {
     onboardingDate: new Date(row.onboarding_date),
     source: row.source,
     sourceReferrer: row.source_referrer ?? undefined,
-    servicos: row.servicos || [],
+    servicos: row.servicos_contratados ?? [],
     contact: row.contact,
   };
 }
@@ -102,7 +102,7 @@ export async function GET() {
     const { data: clientRows, error: clientError } = await supabase
       .from("clientes")
       .select(
-        "id, name, logo, segment, status, responsible, contract_value, last_activity, onboarding_date, source, source_referrer, servicos, contact",
+        "id, name, logo, segment, status, responsible, contract_value, last_activity, onboarding_date, source, source_referrer, servicos_contratados, contact",
       );
 
     if (clientError) throw clientError;

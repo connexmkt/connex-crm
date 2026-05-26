@@ -246,8 +246,8 @@ export default function ClientDrawer({
                 <div className="flex flex-col gap-2">
                   <span className="text-xs text-muted-foreground">Serviços</span>
                   <div className="flex flex-wrap gap-1.5">
-                    {client.servicos.length > 0 ? (
-                      client.servicos.map((s) => (
+                    {(client.servicos ?? []).length > 0 ? (
+                      (client.servicos ?? []).map((s) => (
                         <Badge
                           key={s}
                           variant="secondary"

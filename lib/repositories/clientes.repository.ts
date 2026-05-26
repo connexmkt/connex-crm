@@ -15,7 +15,7 @@ interface ClientRow {
   onboarding_date: string
   source: Client['source']
   source_referrer: string | null
-  servicos: string[]
+  servicos_contratados: string[]
   contact: {
     email: string
     phone: string
@@ -42,7 +42,7 @@ function rowToClient(row: ClientRow): Client {
     onboardingDate: new Date(row.onboarding_date),
     source: row.source,
     sourceReferrer: row.source_referrer ?? undefined,
-    servicos: row.servicos as Client['servicos'],
+    servicos: (row.servicos_contratados ?? []) as Client['servicos'],
     contact: row.contact,
     contractStartDate: row.contract_start_date ? new Date(row.contract_start_date) : undefined,
     contractRenewalDate: row.contract_renewal_date ? new Date(row.contract_renewal_date) : undefined,
@@ -68,7 +68,7 @@ function clientToRow(
       : new Date(input.onboardingDate).toISOString(),
     source: input.source,
     source_referrer: input.sourceReferrer ?? null,
-    servicos: input.servicos,
+    servicos_contratados: input.servicos,
     contact: input.contact,
     contract_start_date: input.contractStartDate
       ? (input.contractStartDate instanceof Date
@@ -168,7 +168,7 @@ export const ClientesRepository = {
     if (input.contractValue !== undefined) patch.contract_value = input.contractValue
     if (input.source !== undefined) patch.source = input.source
     if (input.sourceReferrer !== undefined) patch.source_referrer = input.sourceReferrer ?? null
-    if (input.servicos !== undefined) patch.servicos = input.servicos
+    if (input.servicos !== undefined) patch.servicos_contratados = input.servicos
     if (input.contact !== undefined) patch.contact = input.contact
     if (input.lastActivity !== undefined) {
       patch.last_activity = input.lastActivity instanceof Date

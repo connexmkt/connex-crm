@@ -41,13 +41,15 @@ export default function ClientDrawer({
   const clientCampaigns = allCampaigns.filter((c) => c.client.id === client.id);
 
   return (
-    <motion.div
-      initial={{ x: 440, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: 440, opacity: 0 }}
-      transition={{ type: "spring", damping: 28, stiffness: 280 }}
-      className="fixed right-0 top-0 z-50 flex h-full w-full max-w-[480px] flex-col bg-card shadow-2xl border-l border-border"
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 8 }}
+        transition={{ type: "spring", damping: 28, stiffness: 320 }}
+        className="relative flex w-full max-w-2xl flex-col bg-card shadow-2xl border border-border rounded-2xl overflow-hidden"
+        style={{ maxHeight: "calc(100vh - 2rem)" }}
+      >
       {/* Header */}
       <div className="flex items-start justify-between border-b border-border p-5">
         <div className="flex items-center gap-4">
@@ -89,7 +91,7 @@ export default function ClientDrawer({
       {/* Tabs */}
       <Tabs
         defaultValue="visao-geral"
-        className="flex flex-1 flex-col overflow-hidden"
+        className="flex flex-1 flex-col overflow-hidden min-h-0"
       >
         <div className="border-b border-border px-5 pt-3">
           <TabsList className="h-auto gap-0 rounded-none bg-transparent p-0">
@@ -111,7 +113,7 @@ export default function ClientDrawer({
           </TabsList>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="overflow-y-auto px-5 py-4" style={{ maxHeight: "60vh" }}>
           {/* Visão Geral */}
           <TabsContent value="visao-geral" className="mt-0 space-y-4">
             <div className="space-y-3">
@@ -370,6 +372,7 @@ export default function ClientDrawer({
           </TabsContent>
         </div>
       </Tabs>
-    </motion.div>
+      </motion.div>
+    </div>
   );
 }

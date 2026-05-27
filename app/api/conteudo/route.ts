@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/server'
 import { ok, created, badRequest, unauthorized, serverError } from '@/lib/api/response'
 import { ConteudoService } from '@/lib/services/conteudo.service'
+import { NotificationsService } from '@/lib/services/notifications.service'
 
 const listQuerySchema = z.object({
   clientId: z.string().optional(),
@@ -59,6 +60,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const item = await ConteudoService.create(supabase, parsed.data)
+
+    NotificationsService.broadcast(supabase, {
+      title: 'Novo conteúdo agendado',
+      message: `"${item.title}" foi adicionado à agenda (${item.platform} · ${item.type})`,
+      type: 'info',
+    }).catch((err) => console.error('[notifications] broadcast erro (novo conteudo):', err))
+
     return created(item)
   } catch (err) {
     console.error('[POST /api/conteudo]', err)

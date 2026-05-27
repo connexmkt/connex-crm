@@ -46,6 +46,7 @@ import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/server'
 import { PipelineService } from '@/lib/services/pipeline.service'
+import { NotificationsService } from '@/lib/services/notifications.service'
 import {
   ok,
   created,
@@ -131,6 +132,13 @@ export async function POST(request: NextRequest) {
       ...parsed.data,
       responsibleId: parsed.data.responsibleId ?? user.id,
     })
+
+    NotificationsService.broadcast(supabase, {
+      title: 'Novo lead cadastrado',
+      message: `${lead.companyName} foi adicionado ao pipeline por ${lead.responsible.name}`,
+      type: 'info',
+    }).catch((err) => console.error('[notifications] broadcast erro (novo lead):', err))
+
     return created(lead)
   } catch (err) {
     console.error('[POST /api/pipeline]', err)

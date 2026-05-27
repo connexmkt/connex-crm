@@ -26,6 +26,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/server";
 import { PipelineService } from "@/lib/services/pipeline.service";
+import { NotificationsService } from "@/lib/services/notifications.service";
 import { LOST_REASON_OPTIONS } from "@/lib/constants/pipeline";
 
 import {
@@ -45,6 +46,16 @@ const PIPELINE_STAGES = [
   "fechado",
   "perdido",
 ] as const;
+
+const STAGE_LABELS: Record<(typeof PIPELINE_STAGES)[number], string> = {
+  novo_lead: "Novo Lead",
+  em_contato: "Em Contato",
+  reuniao_agendada: "Reunião Agendada",
+  proposta_enviada: "Proposta Enviada",
+  negociacao: "Negociação",
+  fechado: "Fechado",
+  perdido: "Perdido",
+};
 
 const idSchema = z.string().uuid();
 
@@ -99,6 +110,23 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       idParsed.data,
       parsed.data,
     );
+
+    const stageLabel = STAGE_LABELS[parsed.data.stage];
+    const notificationType =
+      parsed.data.stage === "fechado"
+        ? "success"
+        : parsed.data.stage === "perdido"
+          ? "warning"
+          : "info";
+
+    NotificationsService.broadcast(supabase, {
+      title: `Lead movido: ${lead.companyName}`,
+      message: `${lead.companyName} avançou para "${stageLabel}"`,
+      type: notificationType,
+    }).catch((err) =>
+      console.error("[notifications] broadcast erro (mover lead):", err),
+    );
+
     return ok(lead);
   } catch (err: unknown) {
     if (isNotFoundError(err)) return notFound("Lead");

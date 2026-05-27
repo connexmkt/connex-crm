@@ -43,7 +43,7 @@ export const ConteudoService = {
     // Resolve client
     const { data: clientRow, error: clientError } = await supabase
       .from('clientes')
-      .select('id, name, logo, segment, status, responsible, contract_value, last_activity, onboarding_date, source, source_referrer, servicos, contact')
+      .select('id, name, logo, segment, status, responsible, contract_value, last_activity, onboarding_date, source, source_referrer, servicos_contratados, contact')
       .eq('id', input.clientId)
       .single()
 
@@ -61,7 +61,7 @@ export const ConteudoService = {
       onboardingDate: new Date(clientRow.onboarding_date),
       source: clientRow.source,
       sourceReferrer: clientRow.source_referrer ?? undefined,
-      servicos: clientRow.servicos ?? [],
+      servicos: clientRow.servicos_contratados ?? [],
       contact: clientRow.contact,
     }
 
@@ -117,7 +117,7 @@ export const ConteudoService = {
     if (input.clientId !== undefined) {
       const { data: clientRow, error } = await supabase
         .from('clientes')
-        .select('id, name, logo, segment, status, responsible, contract_value, last_activity, onboarding_date, source, source_referrer, servicos, contact')
+        .select('id, name, logo, segment, status, responsible, contract_value, last_activity, onboarding_date, source, source_referrer, servicos_contratados, contact')
         .eq('id', input.clientId)
         .single()
 
@@ -135,7 +135,7 @@ export const ConteudoService = {
         onboardingDate: new Date(clientRow.onboarding_date),
         source: clientRow.source,
         sourceReferrer: clientRow.source_referrer ?? undefined,
-        servicos: clientRow.servicos ?? [],
+        servicos: clientRow.servicos_contratados ?? [],
         contact: clientRow.contact,
       }
     }

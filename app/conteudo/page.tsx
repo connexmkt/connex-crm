@@ -45,13 +45,13 @@ import {
 } from "lucide-react";
 
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 import {
   Select,
@@ -149,7 +149,7 @@ export default function ConteudoPage() {
   }, [fetchItems]);
 
   useEffect(() => {
-    fetch("/api/clientes?limit=100&status=Ativo")
+    fetch("/api/clientes?limit=100")
       .then((r) => r.json())
       .then((j) => setClients(j.data?.items ?? []))
       .catch(console.error);
@@ -415,11 +415,11 @@ export default function ConteudoPage() {
           </div>
         </div>
 
-        {/* Sheet de criação / edição */}
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetContent className="sm:max-w-[450px] overflow-y-auto">
-            <SheetHeader className="pb-6 border-b">
-              <SheetTitle className="flex items-center gap-2">
+        {/* Dialog centralizado de criação / edição */}
+        <Dialog open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="pb-4 border-b">
+              <DialogTitle className="flex items-center gap-2 text-lg">
                 {selectedItem ? (
                   <>
                     <FileEdit className="h-5 w-5 text-primary" /> Editar Conteúdo
@@ -429,15 +429,15 @@ export default function ConteudoPage() {
                     <Plus className="h-5 w-5 text-primary" /> Novo Compromisso
                   </>
                 )}
-              </SheetTitle>
-              <SheetDescription>
+              </DialogTitle>
+              <DialogDescription>
                 {selectedItem
                   ? "Atualize os detalhes do conteúdo agendado."
                   : "Preencha as informações para agendar um novo post."}
-              </SheetDescription>
-            </SheetHeader>
+              </DialogDescription>
+            </DialogHeader>
 
-            <div className="py-6 space-y-6">
+            <div className="py-4 space-y-5">
               {/* Cliente */}
               <div className="space-y-2">
                 <Label>Cliente</Label>
@@ -446,11 +446,17 @@ export default function ConteudoPage() {
                     <SelectValue placeholder="Selecione o cliente" />
                   </SelectTrigger>
                   <SelectContent>
-                    {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
+                    {clients.length === 0 ? (
+                      <SelectItem value="" disabled>
+                        Nenhum cliente encontrado
                       </SelectItem>
-                    ))}
+                    ) : (
+                      clients.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -512,7 +518,7 @@ export default function ConteudoPage() {
                   value={formCaption}
                   onChange={(e) => setFormCaption(e.target.value)}
                   placeholder="Escreva a legenda aqui..."
-                  className="min-h-[120px] resize-none"
+                  className="min-h-[100px] resize-none"
                 />
               </div>
 
@@ -546,46 +552,46 @@ export default function ConteudoPage() {
                 </div>
               </div>
 
-              {/* Responsável */}
-              <div className="space-y-2">
-                <Label>Responsável</Label>
-                <Select value={formResponsibleId} onValueChange={setFormResponsibleId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o responsável" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {team.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Status */}
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select
-                  value={formStatus}
-                  onValueChange={(v) => setFormStatus(v as ContentItem["status"])}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Rascunho">Rascunho</SelectItem>
-                    <SelectItem value="Aguardando aprovação">Aguardando aprovação</SelectItem>
-                    <SelectItem value="Aprovado">Aprovado</SelectItem>
-                    <SelectItem value="Publicado">Publicado</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* Responsável + Status */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Responsável</Label>
+                  <Select value={formResponsibleId} onValueChange={setFormResponsibleId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o responsável" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {team.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>
+                          {m.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select
+                    value={formStatus}
+                    onValueChange={(v) => setFormStatus(v as ContentItem["status"])}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Rascunho">Rascunho</SelectItem>
+                      <SelectItem value="Aguardando aprovação">Aguardando aprovação</SelectItem>
+                      <SelectItem value="Aprovado">Aprovado</SelectItem>
+                      <SelectItem value="Publicado">Publicado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Mídia (placeholder) */}
               <div className="space-y-2">
                 <Label>Mídia</Label>
-                <div className="border-2 border-dashed border-border rounded-lg p-8 flex flex-col items-center justify-center gap-2 bg-secondary/20 hover:bg-secondary/30 transition-colors cursor-pointer">
+                <div className="border-2 border-dashed border-border rounded-lg p-6 flex flex-col items-center justify-center gap-2 bg-secondary/20 hover:bg-secondary/30 transition-colors cursor-pointer">
                   <ImageIcon className="h-8 w-8 text-muted-foreground" />
                   <p className="text-xs text-muted-foreground">
                     Clique para fazer upload de imagem ou vídeo
@@ -594,7 +600,7 @@ export default function ConteudoPage() {
               </div>
             </div>
 
-            <SheetFooter className="pt-6 border-t flex flex-row gap-2 sm:gap-2">
+            <DialogFooter className="pt-4 border-t flex flex-row gap-2 sm:gap-2">
               {selectedItem && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -636,9 +642,9 @@ export default function ConteudoPage() {
                 )}
                 {selectedItem ? "Atualizar" : "Salvar"}
               </Button>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppShell>
   );

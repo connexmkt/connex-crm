@@ -6,17 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Calendar as CalendarIcon, Download, FileText, Loader2 } from "lucide-react";
 
-import { OverviewTab } from "./components/overview-tab";
-import { SalesTab } from "./components/sales-tab";
-import { CsTab } from "./components/cs-tab";
-import { FinancialTab } from "./components/financial-tab";
-import { ActivityTab } from "./components/activity-tab";
+import { VisaoGeralTab } from "./components/visao-geral-tab";
+import { PipelineVendasTab } from "./components/pipeline-vendas-tab";
+import { ClientesFinanceiroTab } from "./components/clientes-financeiro-tab";
 
-import type { RelatoriosPayload } from "@/app/api/relatorios/route";
+import type { RelatoriosPayloadV2 } from "@/app/api/relatorios/route";
 
 export default function RelatoriosPage() {
   const [dateRange] = useState("Últimos 30 dias");
-  const [payload, setPayload] = useState<RelatoriosPayload | null>(null);
+  const [payload, setPayload] = useState<RelatoriosPayloadV2 | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +25,7 @@ export default function RelatoriosPage() {
         const res = await fetch("/api/relatorios");
         if (!res.ok) throw new Error(`Erro ${res.status}: ${res.statusText}`);
         const json = await res.json();
-        setPayload(json.data as RelatoriosPayload);
+        setPayload(json.data as RelatoriosPayloadV2);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Erro ao carregar relatórios",
@@ -97,33 +95,25 @@ export default function RelatoriosPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="overview">
+        <Tabs defaultValue="visao-geral">
           <TabsList className="w-full sm:w-auto">
-            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="sales">Comercial & Vendas</TabsTrigger>
-            <TabsTrigger value="cs">Clientes & CS</TabsTrigger>
-            <TabsTrigger value="financial">Financeiro</TabsTrigger>
-            <TabsTrigger value="activity">Atividades</TabsTrigger>
+            <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
+            <TabsTrigger value="pipeline-vendas">Pipeline & Vendas</TabsTrigger>
+            <TabsTrigger value="clientes-financeiro">
+              Clientes & Financeiro
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview">
-            <OverviewTab data={payload.overview} />
+          <TabsContent value="visao-geral">
+            <VisaoGeralTab data={payload.visaoGeral} />
           </TabsContent>
 
-          <TabsContent value="sales">
-            <SalesTab data={payload.sales} />
+          <TabsContent value="pipeline-vendas">
+            <PipelineVendasTab data={payload.pipeline} />
           </TabsContent>
 
-          <TabsContent value="cs">
-            <CsTab data={payload.cs} />
-          </TabsContent>
-
-          <TabsContent value="financial">
-            <FinancialTab data={payload.financial} />
-          </TabsContent>
-
-          <TabsContent value="activity">
-            <ActivityTab data={payload.activity} />
+          <TabsContent value="clientes-financeiro">
+            <ClientesFinanceiroTab data={payload.clientes} />
           </TabsContent>
         </Tabs>
       </div>

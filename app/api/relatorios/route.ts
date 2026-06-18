@@ -1,37 +1,49 @@
 /**
  * GET /api/relatorios
  *
- * Retorna todos os dados necessários para a página de Relatórios em 5 blocos:
- *   - overview   — KPIs gerais + gráficos mensais de MRR e crescimento de leads
- *   - sales      — breakdown por etapa, conversões, canais e motivos de perda
- *   - cs         — health score, renovações, volume de conteúdo, churn snapshot
- *   - financial  — ticket médio, MRR, contratos ativos + placeholders
- *   - activity   — leaderboard de vendas, interações recentes, itens parados
+ * Retorna dados para a página de Relatórios em 3 blocos:
+ *   - visaoGeral  — KPIs + gráfico dual-axis + alertas (leads parados, renovações 30d)
+ *   - pipeline    — funil de vendas, canais, motivos de perda, leaderboard
+ *   - clientes    — saúde dos clientes, financeiro, receita vs churn
  *
- * Response 200: { data: RelatoriosPayload }
+ * Response 200: { data: RelatoriosPayloadV2 }
  * Response 401: Unauthorized
  * Response 500: Internal Server Error
  */
 
 import { createClient } from '@/lib/server'
 import { ok, unauthorized, serverError } from '@/lib/api/response'
+import { STALE_THRESHOLD_DAYS } from '@/lib/constants/relatorios'
 import type { Client, PipelineStage, LeadSource } from '@/lib/types'
 
-// ── Tipos do payload ─────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-export type RevenueItem = { month: string; value: number }
-export type ClientGrowthItem = { month: string; leads: number }
+export type Renewal = {
+  id: string
+  name: string
+  renewalDate: string
+  contractValue: number
+}
 
-export type OverviewData = {
+export type StaleItem = {
+  id: string
+  name: string
+  daysIdle: number
+  responsible: string
+}
+
+export type MrrChartItem = { month: string; mrr: number; leads: number }
+
+export type VisaoGeralData = {
   mrr: number
   mrrPrev: number
   activeClients: number
-  activeClientsPrev: number
   pipelineLeads: number
   pipelineValue: number
   conversionRate: number
-  revenueByMonth: RevenueItem[]
-  leadsByMonth: ClientGrowthItem[]
+  mrrPlusClientsChart: MrrChartItem[]
+  staleItems: StaleItem[]
+  renewalsNext30: Renewal[]
 }
 
 export type StageBreakdownItem = {
@@ -42,87 +54,61 @@ export type StageBreakdownItem = {
   color: string
 }
 
-export type StageConversionItem = {
-  from: string
-  to: string
-  rate: number
-}
+export type StageConversionItem = { from: string; to: string; rate: number }
+export type SourceItem = { source: string; label: string; count: number; won: number }
+export type LostReasonItem = { reason: string; count: number }
 
-export type SourceItem = {
-  source: string
-  label: string
-  count: number
-  won: number
-}
-
-export type LostReasonItem = {
+export type LostLeadDetail = {
+  id: string
+  name: string
+  stageLost: string
   reason: string
-  count: number
+  responsible: string
 }
 
-export type SalesData = {
+export type LeaderboardEntry = {
+  userId: string
+  name: string
+  avatar?: string
+  dealsWon: number
+  valueWon: number
+}
+
+export type PipelineData = {
   stageBreakdown: StageBreakdownItem[]
-  stageConversions: StageConversionItem[]
+  funnelConversions: StageConversionItem[]
   finalCloseRate: number
   sources: SourceItem[]
   lostReasons: LostReasonItem[]
+  lostLeadsDetail: LostLeadDetail[]
+  leaderboard: LeaderboardEntry[]
 }
 
-export type Renewal = {
-  id: string
-  name: string
-  renewalDate: string
-  contractValue: number
-}
+export type RevenueVsChurnItem = { month: string; gained: number; churned: number }
 
-export type CsData = {
-  healthScore: { green: number; yellow: number; red: number }
-  renewalsNext30: Renewal[]
-  renewalsNext60: Renewal[]
-  contentVolume: Array<{ status: string; count: number }>
-  churnSnapshot: { inactiveCount: number; activeCount: number }
-}
+export type ClientSummary = { id: string; name: string; contractValue: number }
 
-export type FinancialData = {
+export type ClientesData = {
   ticketMedio: number
   mrr: number
   activeContracts: number
+  revenueVsChurn: RevenueVsChurnItem[]
+  healthScore: { green: number; yellow: number; red: number }
+  clientsByHealth: {
+    healthy: ClientSummary[]
+    atRisk: ClientSummary[]
+    inactive: ClientSummary[]
+  }
+  renewalsNext30: Renewal[]
+  renewalsNext60: Renewal[]
   ltvPlaceholder: true
   inadimplenciaPlaceholder: true
 }
 
-export type ActivityData = {
-  salesLeaderboard: Array<{
-    userId: string
-    name: string
-    avatar?: string
-    dealsWon: number
-    valueWon: number
-    interactions: number
-  }>
-  recentInteractions: Array<{
-    id: string
-    kind: string
-    description: string
-    leadName: string
-    occurredAt: string
-    by: string
-  }>
-  staleItems: Array<{
-    id: string
-    type: 'lead' | 'cliente'
-    name: string
-    daysIdle: number
-    responsible: string
-  }>
-}
-
-export type RelatoriosPayload = {
-  overview: OverviewData
-  sales: SalesData
-  cs: CsData
-  financial: FinancialData
-  activity: ActivityData
+export type RelatoriosPayloadV2 = {
+  visaoGeral: VisaoGeralData
+  pipeline: PipelineData
+  clientes: ClientesData
 }
 
 // ── DB row shapes ─────────────────────────────────────────────────────────────
@@ -149,31 +135,18 @@ interface PipelineLeadRow {
   stale_after_days: number
 }
 
-interface InteractionRow {
-  id: string
-  kind: string
-  description: string | null
-  occurred_at: string
-  created_by: string | null
-  lead: { company_name: string } | null
-}
-
-interface ConteudoRow {
-  status: string
-}
-
-// ── Constantes ────────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const MONTHS_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 
 const STAGE_CONFIG: Record<PipelineStage, { label: string; color: string }> = {
-  novo_lead:        { label: 'Novo Lead',        color: '#5B5FE8' },
-  em_contato:       { label: 'Em Contato',        color: '#14B8A6' },
-  reuniao_agendada: { label: 'Reunião Agendada',  color: '#8B5CF6' },
-  proposta_enviada: { label: 'Proposta Enviada',  color: '#F59E0B' },
-  negociacao:       { label: 'Negociação',        color: '#EC4899' },
-  fechado:          { label: 'Fechado',           color: '#22C55E' },
-  perdido:          { label: 'Perdido',           color: '#EF4444' },
+  novo_lead:        { label: 'Novo Lead',       color: '#5B5FE8' },
+  em_contato:       { label: 'Em Contato',       color: '#14B8A6' },
+  reuniao_agendada: { label: 'Reunião Agendada', color: '#8B5CF6' },
+  proposta_enviada: { label: 'Proposta Enviada', color: '#F59E0B' },
+  negociacao:       { label: 'Negociação',       color: '#EC4899' },
+  fechado:          { label: 'Fechado',          color: '#22C55E' },
+  perdido:          { label: 'Perdido',          color: '#EF4444' },
 }
 
 const ALL_STAGES: PipelineStage[] = [
@@ -194,160 +167,49 @@ const SOURCE_LABELS: Record<LeadSource, string> = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/**
- * Snapshot de leads ativos no fim de cada mês do ano corrente.
- * Lead conta se created_at <= fimDoMes e não estava em estado terminal naquele instante.
- */
-function buildActiveLeadsByMonth(
+function buildMrrPlusClientsChart(
+  clients: ClientRow[],
   leads: PipelineLeadRow[],
   year: number,
-): ClientGrowthItem[] {
+): MrrChartItem[] {
   return MONTHS_PT.map((month, m) => {
     const endOfMonth = new Date(year, m + 1, 0, 23, 59, 59)
 
-    const active = leads.filter((lead) => {
-      if (new Date(lead.created_at) > endOfMonth) return false
-      const isTerminal = lead.stage === 'fechado' || lead.stage === 'perdido'
-      if (!isTerminal) return true
-      if (!lead.stage_entered_at) return false
-      return new Date(lead.stage_entered_at) > endOfMonth
+    const mrr = clients
+      .filter((c) => c.status === 'Ativo' && new Date(c.onboarding_date) <= endOfMonth)
+      .reduce((s, c) => s + (c.contract_value || 0), 0)
+
+    const activeLeads = leads.filter((l) => {
+      if (new Date(l.created_at) > endOfMonth) return false
+      if (l.stage === 'fechado' || l.stage === 'perdido') {
+        return l.stage_entered_at ? new Date(l.stage_entered_at) > endOfMonth : false
+      }
+      return true
+    }).length
+
+    return { month, mrr, leads: activeLeads }
+  })
+}
+
+function buildStaleItems(leads: PipelineLeadRow[]): StaleItem[] {
+  const now = Date.now()
+  return leads
+    .filter((l) => {
+      if (l.stage === 'fechado' || l.stage === 'perdido') return false
+      if (!l.stage_entered_at) return false
+      const days = Math.floor((now - new Date(l.stage_entered_at).getTime()) / 86_400_000)
+      return days > (l.stale_after_days || STALE_THRESHOLD_DAYS)
     })
-
-    return { month, leads: active.length }
-  })
-}
-
-/**
- * Soma de contract_value dos clientes Ativos no fim de cada mês do ano corrente.
- */
-function buildRevenueData(rows: ClientRow[], year: number): RevenueItem[] {
-  return MONTHS_PT.map((month, m) => {
-    const endOfMonth = new Date(year, m + 1, 0, 23, 59, 59)
-
-    const revenue = rows
-      .filter((r) => r.status === 'Ativo' && new Date(r.onboarding_date) <= endOfMonth)
-      .reduce((sum, r) => sum + (r.contract_value || 0), 0)
-
-    return { month, value: revenue }
-  })
-}
-
-function buildOverviewData(
-  clients: ClientRow[],
-  leads: PipelineLeadRow[],
-  revenueByMonth: RevenueItem[],
-  leadsByMonth: ClientGrowthItem[],
-  currentMonth: number,
-): OverviewData {
-  const mrr = clients
-    .filter((c) => c.status === 'Ativo')
-    .reduce((s, c) => s + (c.contract_value || 0), 0)
-
-  const mrrPrev = currentMonth > 0 ? (revenueByMonth[currentMonth - 1]?.value ?? 0) : 0
-
-  const activeClients = clients.filter((c) => c.status === 'Ativo').length
-  const activeClientsPrev = currentMonth > 0 ? (leadsByMonth[currentMonth - 1]?.leads ?? 0) : 0
-
-  const nonTerminal = leads.filter((l) => l.stage !== 'fechado' && l.stage !== 'perdido')
-  const pipelineLeads = nonTerminal.length
-  const pipelineValue = nonTerminal.reduce((s, l) => s + (l.estimated_value || 0), 0)
-
-  const closedCount = leads.filter((l) => l.stage === 'fechado').length
-  const conversionRate = leads.length > 0 ? Math.round((closedCount / leads.length) * 100) : 0
-
-  return {
-    mrr,
-    mrrPrev,
-    activeClients,
-    activeClientsPrev,
-    pipelineLeads,
-    pipelineValue,
-    conversionRate,
-    revenueByMonth,
-    leadsByMonth,
-  }
-}
-
-function buildSalesData(leads: PipelineLeadRow[]): SalesData {
-  // Breakdown por etapa
-  const stageBreakdown: StageBreakdownItem[] = ALL_STAGES.map((stage) => {
-    const inStage = leads.filter((l) => l.stage === stage)
-    return {
-      stage,
-      label: STAGE_CONFIG[stage].label,
-      count: inStage.length,
-      totalValue: inStage.reduce((s, l) => s + (l.estimated_value || 0), 0),
-      color: STAGE_CONFIG[stage].color,
-    }
-  })
-
-  // Conversões entre etapas (funil)
-  const stageConversions: StageConversionItem[] = []
-  for (let i = 0; i < ACTIVE_STAGES.length - 1; i++) {
-    const countAtOrPast = (from: number) =>
-      leads.filter((l) => {
-        if (l.stage === 'perdido') return false
-        if (l.stage === 'fechado') return true
-        return ACTIVE_STAGES.indexOf(l.stage) >= from
-      }).length
-
-    const atCurr = countAtOrPast(i)
-    const atNext = countAtOrPast(i + 1)
-    const rate = atCurr > 0 ? Math.round((atNext / atCurr) * 100) : 0
-
-    stageConversions.push({
-      from: STAGE_CONFIG[ACTIVE_STAGES[i]].label,
-      to: STAGE_CONFIG[ACTIVE_STAGES[i + 1]].label,
-      rate,
-    })
-  }
-
-  const total = leads.length
-  const closedCount = leads.filter((l) => l.stage === 'fechado').length
-  const finalCloseRate = total > 0 ? Math.round((closedCount / total) * 100) : 0
-
-  // Canais de origem
-  const sourceMap = new Map<string, { count: number; won: number }>()
-  for (const lead of leads) {
-    const src = lead.source ?? 'site'
-    const entry = sourceMap.get(src) ?? { count: 0, won: 0 }
-    entry.count++
-    if (lead.stage === 'fechado') entry.won++
-    sourceMap.set(src, entry)
-  }
-  const sources: SourceItem[] = Array.from(sourceMap.entries())
-    .map(([source, data]) => ({
-      source,
-      label: SOURCE_LABELS[source as LeadSource] ?? source,
-      count: data.count,
-      won: data.won,
+    .map((l) => ({
+      id: l.id,
+      name: l.company_name,
+      daysIdle: Math.floor((now - new Date(l.stage_entered_at!).getTime()) / 86_400_000),
+      responsible: l.responsible?.name ?? '—',
     }))
-    .sort((a, b) => b.count - a.count)
-
-  // Motivos de perda
-  const lostMap = new Map<string, number>()
-  for (const lead of leads) {
-    if (lead.stage === 'perdido' && lead.lost_reason) {
-      lostMap.set(lead.lost_reason, (lostMap.get(lead.lost_reason) ?? 0) + 1)
-    }
-  }
-  const lostReasons: LostReasonItem[] = Array.from(lostMap.entries())
-    .map(([reason, count]) => ({ reason, count }))
-    .sort((a, b) => b.count - a.count)
-
-  return { stageBreakdown, stageConversions, finalCloseRate, sources, lostReasons }
+    .sort((a, b) => b.daysIdle - a.daysIdle)
 }
 
-function buildCsData(
-  clients: ClientRow[],
-  contentVolume: Array<{ status: string; count: number }>,
-): CsData {
-  const healthScore = {
-    green:  clients.filter((c) => c.status === 'Ativo').length,
-    yellow: clients.filter((c) => c.status === 'Em risco').length,
-    red:    clients.filter((c) => c.status === 'Inativo').length,
-  }
-
+function buildRenewals(clients: ClientRow[]): { next30: Renewal[]; next60: Renewal[] } {
   const now = new Date()
   const plus30 = new Date(now)
   plus30.setDate(plus30.getDate() + 30)
@@ -361,7 +223,7 @@ function buildCsData(
     contractValue: c.contract_value,
   })
 
-  const renewalsNext30 = clients
+  const next30 = clients
     .filter((c) => {
       if (!c.contract_renewal_date) return false
       const d = new Date(c.contract_renewal_date)
@@ -370,7 +232,7 @@ function buildCsData(
     .map(toRenewal)
     .sort((a, b) => a.renewalDate.localeCompare(b.renewalDate))
 
-  const renewalsNext60 = clients
+  const next60 = clients
     .filter((c) => {
       if (!c.contract_renewal_date) return false
       const d = new Date(c.contract_renewal_date)
@@ -379,86 +241,181 @@ function buildCsData(
     .map(toRenewal)
     .sort((a, b) => a.renewalDate.localeCompare(b.renewalDate))
 
-  const churnSnapshot = {
-    inactiveCount: clients.filter((c) => c.status === 'Inativo').length,
-    activeCount:   clients.filter((c) => c.status === 'Ativo').length,
-  }
-
-  return { healthScore, renewalsNext30, renewalsNext60, contentVolume, churnSnapshot }
+  return { next30, next60 }
 }
 
-function buildFinancialData(clients: ClientRow[]): FinancialData {
+function buildVisaoGeralData(
+  clients: ClientRow[],
+  leads: PipelineLeadRow[],
+  chart: MrrChartItem[],
+  currentMonth: number,
+): VisaoGeralData {
   const mrr = clients
     .filter((c) => c.status === 'Ativo')
     .reduce((s, c) => s + (c.contract_value || 0), 0)
 
-  const activeContracts = clients.filter((c) => c.status === 'Ativo').length
-  const ticketMedio = activeContracts > 0 ? mrr / activeContracts : 0
+  const nonTerminal = leads.filter((l) => l.stage !== 'fechado' && l.stage !== 'perdido')
+  const closedCount = leads.filter((l) => l.stage === 'fechado').length
 
-  return { ticketMedio, mrr, activeContracts, ltvPlaceholder: true, inadimplenciaPlaceholder: true }
+  return {
+    mrr,
+    mrrPrev: currentMonth > 0 ? (chart[currentMonth - 1]?.mrr ?? 0) : 0,
+    activeClients: clients.filter((c) => c.status === 'Ativo').length,
+    pipelineLeads: nonTerminal.length,
+    pipelineValue: nonTerminal.reduce((s, l) => s + (l.estimated_value || 0), 0),
+    conversionRate: leads.length > 0 ? Math.round((closedCount / leads.length) * 100) : 0,
+    mrrPlusClientsChart: chart,
+    staleItems: buildStaleItems(leads),
+    renewalsNext30: buildRenewals(clients).next30,
+  }
 }
 
-function buildActivityData(
-  leads: PipelineLeadRow[],
-  interactions: InteractionRow[],
-): ActivityData {
-  // Leaderboard — agrupa leads fechados por responsável
+function buildPipelineData(leads: PipelineLeadRow[]): PipelineData {
+  const stageBreakdown: StageBreakdownItem[] = ALL_STAGES.map((stage) => {
+    const inStage = leads.filter((l) => l.stage === stage)
+    return {
+      stage,
+      label: STAGE_CONFIG[stage].label,
+      count: inStage.length,
+      totalValue: inStage.reduce((s, l) => s + (l.estimated_value || 0), 0),
+      color: STAGE_CONFIG[stage].color,
+    }
+  })
+
+  const funnelConversions: StageConversionItem[] = []
+  for (let i = 0; i < ACTIVE_STAGES.length - 1; i++) {
+    const countAtOrPast = (from: number) =>
+      leads.filter((l) => {
+        if (l.stage === 'perdido') return false
+        if (l.stage === 'fechado') return true
+        return ACTIVE_STAGES.indexOf(l.stage) >= from
+      }).length
+
+    const atCurr = countAtOrPast(i)
+    const atNext = countAtOrPast(i + 1)
+    funnelConversions.push({
+      from: STAGE_CONFIG[ACTIVE_STAGES[i]].label,
+      to: STAGE_CONFIG[ACTIVE_STAGES[i + 1]].label,
+      rate: atCurr > 0 ? Math.round((atNext / atCurr) * 100) : 0,
+    })
+  }
+
+  const sourceMap = new Map<string, { count: number; won: number }>()
+  for (const lead of leads) {
+    const src = lead.source ?? 'site'
+    const entry = sourceMap.get(src) ?? { count: 0, won: 0 }
+    entry.count++
+    if (lead.stage === 'fechado') entry.won++
+    sourceMap.set(src, entry)
+  }
+
+  const lostMap = new Map<string, number>()
+  for (const lead of leads) {
+    if (lead.stage === 'perdido' && lead.lost_reason) {
+      lostMap.set(lead.lost_reason, (lostMap.get(lead.lost_reason) ?? 0) + 1)
+    }
+  }
+
   const leaderMap = new Map<string, { name: string; avatar?: string; dealsWon: number; valueWon: number }>()
   for (const lead of leads) {
     if (lead.stage !== 'fechado' || !lead.responsible) continue
     const uid = lead.responsible.id
-    const entry = leaderMap.get(uid) ?? { name: lead.responsible.name, avatar: lead.responsible.avatar, dealsWon: 0, valueWon: 0 }
+    const entry = leaderMap.get(uid) ?? {
+      name: lead.responsible.name,
+      avatar: lead.responsible.avatar,
+      dealsWon: 0,
+      valueWon: 0,
+    }
     entry.dealsWon++
     entry.valueWon += lead.estimated_value || 0
     leaderMap.set(uid, entry)
   }
-  const salesLeaderboard = Array.from(leaderMap.entries())
-    .map(([userId, data]) => ({ userId, ...data, interactions: 0 }))
-    .sort((a, b) => b.dealsWon - a.dealsWon)
 
-  // Interações recentes
-  const recentInteractions = interactions.map((i) => ({
-    id: i.id,
-    kind: i.kind,
-    description: i.description ?? '',
-    leadName: i.lead?.company_name ?? '—',
-    occurredAt: i.occurred_at,
-    by: i.created_by ?? '—',
-  }))
-
-  // Itens parados (leads com is_stale)
-  const now = Date.now()
-  const staleItems = leads
-    .filter((l) => {
-      if (l.stage === 'fechado' || l.stage === 'perdido') return false
-      if (!l.stage_entered_at) return false
-      const daysInStage = Math.floor((now - new Date(l.stage_entered_at).getTime()) / 86_400_000)
-      return daysInStage > (l.stale_after_days || 7)
-    })
-    .map((l) => {
-      const daysIdle = Math.floor((now - new Date(l.stage_entered_at!).getTime()) / 86_400_000)
-      return {
+  return {
+    stageBreakdown,
+    funnelConversions,
+    finalCloseRate: leads.length > 0
+      ? Math.round((leads.filter((l) => l.stage === 'fechado').length / leads.length) * 100)
+      : 0,
+    sources: Array.from(sourceMap.entries())
+      .map(([source, d]) => ({
+        source,
+        label: SOURCE_LABELS[source as LeadSource] ?? source,
+        count: d.count,
+        won: d.won,
+      }))
+      .sort((a, b) => b.count - a.count),
+    lostReasons: Array.from(lostMap.entries())
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((a, b) => b.count - a.count),
+    lostLeadsDetail: leads
+      .filter((l) => l.stage === 'perdido')
+      .map((l) => ({
         id: l.id,
-        type: 'lead' as const,
         name: l.company_name,
-        daysIdle,
+        stageLost: STAGE_CONFIG.perdido.label,
+        reason: l.lost_reason ?? '—',
         responsible: l.responsible?.name ?? '—',
-      }
-    })
-    .sort((a, b) => b.daysIdle - a.daysIdle)
+      })),
+    leaderboard: Array.from(leaderMap.entries())
+      .map(([userId, d]) => ({ userId, ...d }))
+      .sort((a, b) => b.dealsWon - a.dealsWon),
+  }
+}
 
-  return { salesLeaderboard, recentInteractions, staleItems }
+function buildRevenueVsChurn(clients: ClientRow[], year: number): RevenueVsChurnItem[] {
+  // gained = soma de contract_value de clientes com onboarding_date no mês
+  // churned = 0 — tabela de cancelamentos ainda não implementada
+  return MONTHS_PT.map((month, m) => {
+    const start = new Date(year, m, 1)
+    const end = new Date(year, m + 1, 0, 23, 59, 59)
+    const gained = clients
+      .filter((c) => {
+        const d = new Date(c.onboarding_date)
+        return d >= start && d <= end
+      })
+      .reduce((s, c) => s + (c.contract_value || 0), 0)
+    return { month, gained, churned: 0 }
+  })
+}
+
+function buildClientesData(clients: ClientRow[], year: number): ClientesData {
+  const active = clients.filter((c) => c.status === 'Ativo')
+  const mrr = active.reduce((s, c) => s + (c.contract_value || 0), 0)
+  const activeContracts = active.length
+  const { next30, next60 } = buildRenewals(clients)
+
+  return {
+    ticketMedio: activeContracts > 0 ? mrr / activeContracts : 0,
+    mrr,
+    activeContracts,
+    revenueVsChurn: buildRevenueVsChurn(clients, year),
+    healthScore: {
+      green:  clients.filter((c) => c.status === 'Ativo').length,
+      yellow: clients.filter((c) => c.status === 'Em risco').length,
+      red:    clients.filter((c) => c.status === 'Inativo').length,
+    },
+    clientsByHealth: {
+      healthy:  active.map((c) => ({ id: c.id, name: c.name, contractValue: c.contract_value })),
+      atRisk:   clients.filter((c) => c.status === 'Em risco').map((c) => ({ id: c.id, name: c.name, contractValue: c.contract_value })),
+      inactive: clients.filter((c) => c.status === 'Inativo').map((c) => ({ id: c.id, name: c.name, contractValue: c.contract_value })),
+    },
+    renewalsNext30: next30,
+    renewalsNext60: next60,
+    ltvPlaceholder: true,
+    inadimplenciaPlaceholder: true,
+  }
 }
 
 // ── Handler ────────────────────────────────────────────────────────────────────
 
-export async function GET() {
+export async function GET(): Promise<Response> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return unauthorized()
 
   try {
-    const [clientRes, leadRes, interactionRes, conteudoRes] = await Promise.all([
+    const [clientRes, leadRes] = await Promise.all([
       supabase
         .from('clientes')
         .select('id, name, status, contract_value, onboarding_date, contract_renewal_date')
@@ -467,16 +424,6 @@ export async function GET() {
       supabase
         .from('pipeline_leads')
         .select('id, company_name, stage, created_at, stage_entered_at, estimated_value, source, lost_reason, responsible, stale_after_days'),
-
-      supabase
-        .from('pipeline_lead_interactions')
-        .select('id, kind, description, occurred_at, created_by, lead:pipeline_leads(company_name)')
-        .order('occurred_at', { ascending: false })
-        .limit(15),
-
-      supabase
-        .from('conteudo')
-        .select('status'),
     ])
 
     if (clientRes.error) throw clientRes.error
@@ -484,35 +431,19 @@ export async function GET() {
 
     const clients = (clientRes.data ?? []) as ClientRow[]
     const leads = (leadRes.data ?? []) as PipelineLeadRow[]
-    // Supabase infere o tipo do join como array; cast via unknown para o shape esperado
-    const interactions = ((interactionRes.data ?? []) as unknown) as InteractionRow[]
-    const conteudoRows = (conteudoRes.data ?? []) as ConteudoRow[]
 
     const now = new Date()
-    const currentYear = now.getFullYear()
-    const currentMonth = now.getMonth()
+    const chart = buildMrrPlusClientsChart(clients, leads, now.getFullYear())
 
-    const revenueByMonth = buildRevenueData(clients, currentYear)
-    const leadsByMonth = buildActiveLeadsByMonth(leads, currentYear)
-
-    // Agrega status de conteúdo
-    const contentStatusMap = new Map<string, number>()
-    for (const row of conteudoRows) {
-      contentStatusMap.set(row.status, (contentStatusMap.get(row.status) ?? 0) + 1)
-    }
-    const contentVolume = Array.from(contentStatusMap.entries()).map(([status, count]) => ({ status, count }))
-
-    const payload: RelatoriosPayload = {
-      overview:  buildOverviewData(clients, leads, revenueByMonth, leadsByMonth, currentMonth),
-      sales:     buildSalesData(leads),
-      cs:        buildCsData(clients, contentVolume),
-      financial: buildFinancialData(clients),
-      activity:  buildActivityData(leads, interactions),
+    const payload: RelatoriosPayloadV2 = {
+      visaoGeral: buildVisaoGeralData(clients, leads, chart, now.getMonth()),
+      pipeline:   buildPipelineData(leads),
+      clientes:   buildClientesData(clients, now.getFullYear()),
     }
 
     return ok(payload)
   } catch (err) {
-    console.error('[GET /api/relatorios]', err)
+    console.error('[GET /api/relatorios] user:', user.id, err)
     return serverError()
   }
 }

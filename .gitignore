@@ -13,6 +13,10 @@ __v0_jsx-dev-runtime.ts
 node_modules
 .next/
 .DS_Store
+coverage/
+
+# Prisma Client gerado (regenerado via `pnpm db:generate`)
+/lib/generated/prisma
 
 # Lock files de outros package managers
 package-lock.json

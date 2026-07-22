@@ -28,3 +28,6 @@ export const conflict = (message: string) =>
 
 export const serverError = () =>
   NextResponse.json<ApiError>({ error: 'Internal Server Error' }, { status: 500 })
+
+export const badGateway = (message = 'Não foi possível concluir a operação no momento. Tente novamente em instantes.') =>
+  NextResponse.json<ApiError>({ error: message }, { status: 502 })

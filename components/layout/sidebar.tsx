@@ -21,6 +21,7 @@ import {
   ChevronRight,
   LogOut,
   TrendingUp,
+  LayoutGrid,
 } from "lucide-react";
 
 import {
@@ -39,6 +40,12 @@ const navItems = [
   { href: "/conteudo", label: "Agenda", icon: Calendar },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { href: "/configuracoes", label: "Configurações", icon: Settings },
+];
+
+// Visível apenas para Admin — a página em si também aplica a guarda
+// server-side (FR-004); esconder o item evita expor uma rota sem acesso.
+const adminOnlyNavItems = [
+  { href: "/aplicacoes", label: "Aplicações", icon: LayoutGrid },
 ];
 
 interface SidebarProps {
@@ -121,7 +128,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 px-2 py-4">
-          {navItems.map((item) => {
+          {[
+            ...navItems,
+            ...(currentUser?.role === "Admin" ? adminOnlyNavItems : []),
+          ].map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
 

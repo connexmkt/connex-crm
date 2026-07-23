@@ -1,8 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ClientArquivo, ClientArquivoType } from '@/lib/types'
 
-// ── DB row shape ──────────────────────────────────────────────────────────────
-
 interface ArquivoRow {
   id: string
   cliente_id: string
@@ -14,8 +12,6 @@ interface ArquivoRow {
   uploaded_by: string | null
   created_at: string
 }
-
-// ── Mapping helpers ───────────────────────────────────────────────────────────
 
 function rowToArquivo(row: ArquivoRow): ClientArquivo {
   return {
@@ -31,11 +27,7 @@ function rowToArquivo(row: ArquivoRow): ClientArquivo {
   }
 }
 
-// ── Input types ───────────────────────────────────────────────────────────────
-
 export type InsertArquivoInput = Omit<ClientArquivo, 'id' | 'createdAt' | 'signedUrl'>
-
-// ── Repository ────────────────────────────────────────────────────────────────
 
 export const ArquivosRepository = {
   async findByClienteId(supabase: SupabaseClient, clienteId: string): Promise<ClientArquivo[]> {

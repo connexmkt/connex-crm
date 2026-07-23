@@ -1,8 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Task, User } from '@/lib/types'
 
-// ── DB row shape (snake_case Postgres columns) ──────────────────────────────
-
 interface TaskRow {
   id: string
   title: string
@@ -14,8 +12,6 @@ interface TaskRow {
   owner_id: string
   created_at: string
 }
-
-// ── Column mapping helpers ────────────────────────────────────────────────────
 
 function rowToTask(row: TaskRow): Task {
   return {
@@ -46,8 +42,6 @@ function taskToRow(
   }
 }
 
-// ── Query params ──────────────────────────────────────────────────────────────
-
 export type FindManyParams = {
   ownerId: string
   limit?: number
@@ -56,8 +50,6 @@ export type FindManyParams = {
 
 export type InsertInput = Omit<Task, 'id'> & { ownerId: string; assigneeId?: string }
 export type UpdateInput = Partial<Omit<Task, 'id'>> & { assigneeId?: string }
-
-// ── Repository ────────────────────────────────────────────────────────────────
 
 export const TasksRepository = {
   async findMany(

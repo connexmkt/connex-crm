@@ -13,7 +13,6 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-// ─── Schemas ─────────────────────────────────────────────────────────────────
 import { novoClienteSchema, type NovoClienteForm } from "../schemas/cliente.schema";
 
 export default function ClienteFormDialog({

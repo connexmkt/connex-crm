@@ -103,8 +103,6 @@ export type FunnelStage =
   | "recompra"
   | "indicacao";
 
-// ── Pipeline de vendas (Kanban comercial) ──────────────────────────────────────
-
 export type PipelineStage =
   | "novo_lead"
   | "em_contato"

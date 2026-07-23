@@ -66,7 +66,6 @@ import {
   INTERACTION_KIND_CONFIG,
 } from "@/lib/constants/pipeline";
 
-// ─── Components ───────────────────────────────────────────────────────────────
 import { PipelineLeadCard } from "./components/PipelineLeadCard";
 import { SortablePipelineLeadCard } from "./components/SortablePipelineLeadCard";
 
@@ -83,8 +82,6 @@ function formatDate(date: Date | string | undefined): string {
     month: "short",
   });
 }
-
-// ─── KanbanColumn ─────────────────────────────────────────────────────────────
 
 function KanbanColumn({
   stage,
@@ -183,8 +180,6 @@ function KanbanColumn({
     </div>
   );
 }
-
-// ─── LeadDetailDrawer ─────────────────────────────────────────────────────────
 
 function LeadDetailDrawer({
   lead,
@@ -551,8 +546,6 @@ function LeadDetailDrawer({
   );
 }
 
-// ─── Novo Lead Dialog ─────────────────────────────────────────────────────────
-
 type LeadSource = "site" | "indicacao" | "prospeccao" | "instagram" | "evento";
 type LeadTemperature = "quente" | "morno" | "frio";
 
@@ -843,8 +836,6 @@ function NovoLeadDialog({
   );
 }
 
-// ─── Lost Reason Dialog ───────────────────────────────────────────────────────
-
 function LostReasonDialog({
   onConfirm,
   onCancel,
@@ -920,8 +911,6 @@ function LostReasonDialog({
     </Dialog>
   );
 }
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PipelineComericalPage() {
   const [leads, setLeads] = useState<PipelineLead[]>([]);

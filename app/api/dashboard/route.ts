@@ -9,9 +9,6 @@ import {
   PIPELINE_STAGES,
 } from "@/lib/constants/pipeline";
 
-// ── Tipos do payload ───────────────────────────────────────────────────────────
-// ... (rest of types)
-
 type KpiData = {
   totalClientes: number;
   clientesVariacao: number;
@@ -36,8 +33,6 @@ export type DashboardPayload = {
   tasks: Task[];
   atRiskClients: Client[];
 };
-
-// ── DB row shape ───────────────────────────────────────────────────────────────
 
 interface ClientRow {
   id: string;
@@ -72,8 +67,6 @@ function rowToClient(row: ClientRow): Client {
     contact: row.contact,
   };
 }
-
-// ── Handler ────────────────────────────────────────────────────────────────────
 
 export async function GET() {
   const supabase = await createClient();

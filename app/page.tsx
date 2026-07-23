@@ -43,14 +43,10 @@ import {
   Activity as ActivityIcon,
 } from "lucide-react";
 
-// ── Tipos locais ──────────────────────────────────────────────────────────────
-
 type Atividade = DashboardPayload["activities"][number];
 type Task = DashboardPayload["tasks"][number];
 type AtRiskClient = DashboardPayload["atRiskClients"][number];
 type PipelineItem = DashboardPayload["pipelineChartData"][number];
-
-// ── Hooks ─────────────────────────────────────────────────────────────────────
 
 function useCountUp(target: number, duration = 1500) {
   const [count, setCount] = useState(0);
@@ -70,8 +66,6 @@ function useCountUp(target: number, duration = 1500) {
 
   return count;
 }
-
-// ── Componentes ───────────────────────────────────────────────────────────────
 
 function KpiCard({
   title,
@@ -209,8 +203,6 @@ function PipelineStagePieChart({ data }: { data: PipelineItem[] }) {
   );
 }
 
-// ── Config de tipos de atividade ──────────────────────────────────────────────
-
 const ATIVIDADE_TIPO_CONFIG: Record<
   AtividadeTipo,
   { label: string; icon: React.ElementType; color: string }
@@ -223,8 +215,6 @@ const ATIVIDADE_TIPO_CONFIG: Record<
   contrato: { label: "Contrato",  icon: FileSignature,  color: "text-success bg-success/10" },
 };
 
-// ── Defaults ──────────────────────────────────────────────────────────────────
-
 const DEFAULT_KPI: DashboardPayload["kpiData"] = {
   totalClientes: 0,
   clientesVariacao: 0,
@@ -235,8 +225,6 @@ const DEFAULT_KPI: DashboardPayload["kpiData"] = {
   faturamentoMes: 0,
   faturamentoVariacao: 0,
 };
-
-// ── Página ────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<DashboardPayload | null>(

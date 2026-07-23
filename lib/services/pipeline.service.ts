@@ -9,8 +9,6 @@ import {
   type UpdatePipelineInput,
 } from "@/lib/repositories/pipeline.repository";
 
-// ── Input types ────────────────────────────────────────────────────────────────
-
 export type CreateLeadInput = {
   companyName: string;
   contactName: string;
@@ -57,8 +55,6 @@ export type MoveStageInput = {
   /** Optional: link to an existing client record when stage = 'fechado' */
   clienteId?: string;
 };
-
-// ── Service ────────────────────────────────────────────────────────────────────
 
 export const PipelineService = {
   async list(supabase: SupabaseClient, params: FindManyPipelineParams) {

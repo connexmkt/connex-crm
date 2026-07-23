@@ -1,8 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { PipelineLead, PipelineStage, LeadSource, User } from '@/lib/types'
 
-// ── DB row shape (snake_case Postgres columns) ────────────────────────────────
-
 interface PipelineLeadRow {
   id: string
   company_name: string
@@ -27,8 +25,6 @@ interface PipelineLeadRow {
   created_at: string
   updated_at: string
 }
-
-// ── Column mapping ─────────────────────────────────────────────────────────────
 
 function rowToLead(row: PipelineLeadRow): PipelineLead {
   const stageEnteredAt = new Date(row.stage_entered_at)
@@ -63,8 +59,6 @@ function rowToLead(row: PipelineLeadRow): PipelineLead {
     updatedAt: new Date(row.updated_at),
   }
 }
-
-// ── Query / mutation param types ───────────────────────────────────────────────
 
 export type FindManyPipelineParams = {
   page: number
@@ -114,8 +108,6 @@ export type UpdatePipelineInput = Partial<{
   stageEnteredAt: Date
   clienteId: string | null
 }>
-
-// ── Repository ─────────────────────────────────────────────────────────────────
 
 export const PipelineRepository = {
   async findMany(

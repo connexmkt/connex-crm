@@ -1,8 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Atividade, AtividadeTipo, AtividadeAssociacaoTipo, User } from '@/lib/types'
 
-// ── DB row shape (snake_case Postgres columns) ────────────────────────────────
-
 interface AtividadeRow {
   id: string
   tipo: AtividadeTipo
@@ -18,8 +16,6 @@ interface AtividadeRow {
   owner_id: string
   created_at: string
 }
-
-// ── Column mapping ─────────────────────────────────────────────────────────────
 
 function rowToAtividade(row: AtividadeRow): Atividade {
   return {
@@ -39,8 +35,6 @@ function rowToAtividade(row: AtividadeRow): Atividade {
   }
 }
 
-// ── Query params ──────────────────────────────────────────────────────────────
-
 export type FindAtividadesParams = {
   limit?: number
   associacaoTipo?: AtividadeAssociacaoTipo
@@ -49,8 +43,6 @@ export type FindAtividadesParams = {
 }
 
 export type InsertAtividadeInput = Omit<Atividade, 'id' | 'createdAt'>
-
-// ── Repository ─────────────────────────────────────────────────────────────────
 
 export const AtividadesRepository = {
   async findMany(

@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Activity, Campaign, Client } from "@/lib/types";
 import { CLIENTE_SOURCES_OPTIONS, CLIENTE_SERVICOS_OPTIONS } from "@/lib/constants/clientes";
 
-// ─── Components ─────────────────────────────────────────────────────────────
 import ArquivosTab from "./ArquivosTab";
 import ContatosTab from "./ContatosTab";
 import StatusBadge from "./StatusBadge";

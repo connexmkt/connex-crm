@@ -1,8 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ClientContato, ClientContatoType, ClientContatoChannel } from '@/lib/types'
 
-// ── DB row shape ──────────────────────────────────────────────────────────────
-
 interface ContatoRow {
   id: string
   cliente_id: string
@@ -14,8 +12,6 @@ interface ContatoRow {
   type: ClientContatoType
   created_at: string
 }
-
-// ── Mapping helpers ───────────────────────────────────────────────────────────
 
 function rowToContato(row: ContatoRow): ClientContato {
   return {
@@ -31,12 +27,8 @@ function rowToContato(row: ContatoRow): ClientContato {
   }
 }
 
-// ── Input types ───────────────────────────────────────────────────────────────
-
 export type InsertContatoInput = Omit<ClientContato, 'id' | 'createdAt'>
 export type UpdateContatoInput = Partial<Omit<ClientContato, 'id' | 'clienteId' | 'createdAt'>>
-
-// ── Repository ────────────────────────────────────────────────────────────────
 
 export const ContatosRepository = {
   async findByClienteId(supabase: SupabaseClient, clienteId: string): Promise<ClientContato[]> {

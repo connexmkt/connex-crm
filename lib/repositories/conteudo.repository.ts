@@ -1,8 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ContentItem, User } from '@/lib/types'
 
-// ── DB row shape (snake_case Postgres columns) ────────────────────────────────
-
 interface ConteudoRow {
   id: string
   client_id: string
@@ -21,8 +19,6 @@ interface ConteudoRow {
   created_at: string
 }
 
-// ── Column mapping ─────────────────────────────────────────────────────────────
-
 function rowToContentItem(row: ConteudoRow): ContentItem & { publishTime: string; ownerId: string } {
   return {
     id: row.id,
@@ -39,8 +35,6 @@ function rowToContentItem(row: ConteudoRow): ContentItem & { publishTime: string
     ownerId: row.owner_id,
   }
 }
-
-// ── Query params ──────────────────────────────────────────────────────────────
 
 export type FindConteudoParams = {
   clientId?: string
@@ -67,8 +61,6 @@ export type InsertConteudoInput = {
 }
 
 export type UpdateConteudoInput = Partial<Omit<InsertConteudoInput, 'ownerId'>>
-
-// ── Repository ─────────────────────────────────────────────────────────────────
 
 export const ConteudoRepository = {
   async findMany(supabase: SupabaseClient, params: FindConteudoParams = {}) {

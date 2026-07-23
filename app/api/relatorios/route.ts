@@ -105,8 +105,6 @@ export type RelatoriosPayloadV2 = {
   clientes: ClientesData;
 };
 
-// ── DB row shapes ─────────────────────────────────────────────────────────────
-
 interface ClientRow {
   id: string;
   name: string;
@@ -128,8 +126,6 @@ interface PipelineLeadRow {
   responsible: { id: string; name: string; avatar?: string } | null;
   stale_after_days: number;
 }
-
-// ── Constants ─────────────────────────────────────────────────────────────────
 
 const MONTHS_PT = [
   "Jan",
@@ -181,8 +177,6 @@ const SOURCE_LABELS: Record<LeadSource, string> = {
   site: "Site",
   evento: "Evento",
 };
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function buildMrrPlusClientsChart(
   clients: ClientRow[],
@@ -467,8 +461,6 @@ function buildClientesData(clients: ClientRow[], year: number): ClientesData {
     inadimplenciaPlaceholder: true,
   };
 }
-
-// ── Handler ────────────────────────────────────────────────────────────────────
 
 export async function GET(): Promise<Response> {
   const supabase = await createClient();

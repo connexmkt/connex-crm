@@ -73,8 +73,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-// ── Constantes ────────────────────────────────────────────────────────────────
-
 const platformIcons: Record<string, React.ElementType> = {
   Instagram,
   LinkedIn: Linkedin,
@@ -89,17 +87,11 @@ const statusColors: Record<string, string> = {
   Publicado: "bg-success/10 text-success border-success/20",
 };
 
-// ── Tipo local (ContentItem + publishTime + ownerId) ──────────────────────────
-
 type ConteudoItem = ContentItem & { publishTime: string; ownerId: string };
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function toDateInput(date: Date | string): string {
   return format(new Date(date), "yyyy-MM-dd");
 }
-
-// ── Página ────────────────────────────────────────────────────────────────────
 
 export default function ConteudoPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -123,8 +115,6 @@ export default function ConteudoPage() {
   const [formTime, setFormTime] = useState("10:00");
   const [formStatus, setFormStatus] = useState<ContentItem["status"]>("Rascunho");
   const [formResponsibleId, setFormResponsibleId] = useState("");
-
-  // ── Busca de dados ──────────────────────────────────────────────────────────
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -160,8 +150,6 @@ export default function ConteudoPage() {
       .catch(console.error);
   }, []);
 
-  // ── Calendário ──────────────────────────────────────────────────────────────
-
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(monthStart);
   const startDate = startOfWeek(monthStart, { weekStartsOn: 0 });
@@ -175,8 +163,6 @@ export default function ConteudoPage() {
   const filteredItems = items.filter(
     (item) => filterClient === "all" || item.client.id === filterClient,
   );
-
-  // ── Sheet helpers ───────────────────────────────────────────────────────────
 
   function openForNew(day: Date) {
     setSelectedItem(null);
@@ -205,8 +191,6 @@ export default function ConteudoPage() {
     setFormResponsibleId(item.responsible.id);
     setIsSheetOpen(true);
   }
-
-  // ── Salvar (criar ou atualizar) ─────────────────────────────────────────────
 
   async function handleSave() {
     if (!formClientId || !formTitle.trim() || !formResponsibleId) {
@@ -262,8 +246,6 @@ export default function ConteudoPage() {
     }
   }
 
-  // ── Deletar ─────────────────────────────────────────────────────────────────
-
   async function handleDelete(id: string) {
     try {
       const res = await fetch(`/api/conteudo/${id}`, { method: "DELETE" });
@@ -275,8 +257,6 @@ export default function ConteudoPage() {
       toast.error("Erro ao remover o conteúdo");
     }
   }
-
-  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <AppShell title="Calendário Editorial">

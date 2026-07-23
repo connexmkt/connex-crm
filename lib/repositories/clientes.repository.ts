@@ -1,8 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Client, User } from '@/lib/types'
 
-// ── DB row shape (snake_case Postgres columns) ──────────────────────────────
-
 interface ClientRow {
   id: string
   name: string
@@ -26,8 +24,6 @@ interface ClientRow {
   internal_notes: string | null
   created_at: string
 }
-
-// ── Column mapping helpers ────────────────────────────────────────────────────
 
 function rowToClient(row: ClientRow): Client {
   return {
@@ -84,8 +80,6 @@ function clientToRow(
   }
 }
 
-// ── Query params ──────────────────────────────────────────────────────────────
-
 export type FindManyParams = {
   page: number
   limit: number
@@ -103,8 +97,6 @@ export type UpdateInput = Partial<
   internalNotes?: string | null
   sourceReferrer?: string | null
 }
-
-// ── Repository ────────────────────────────────────────────────────────────────
 
 export const ClientesRepository = {
   async findMany(

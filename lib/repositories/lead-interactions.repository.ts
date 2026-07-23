@@ -1,8 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { LeadInteraction, LeadInteractionKind } from '@/lib/types'
 
-// ── DB row shape (snake_case Postgres columns) ────────────────────────────────
-
 interface LeadInteractionRow {
   id: string
   lead_id: string
@@ -12,8 +10,6 @@ interface LeadInteractionRow {
   created_by: string | null
   created_at: string
 }
-
-// ── Column mapping ─────────────────────────────────────────────────────────────
 
 function rowToInteraction(row: LeadInteractionRow): LeadInteraction {
   return {
@@ -26,8 +22,6 @@ function rowToInteraction(row: LeadInteractionRow): LeadInteraction {
     createdAt: new Date(row.created_at),
   }
 }
-
-// ── Repository ─────────────────────────────────────────────────────────────────
 
 export type InsertInteractionInput = Omit<LeadInteraction, 'id' | 'createdAt'>
 

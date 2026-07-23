@@ -1,13 +1,22 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Plus, Loader2, Phone, Mail, MessageSquare, Video, FileText, FileSignature } from 'lucide-react'
-import { toast } from 'sonner'
+import { useState, useEffect, useCallback } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Plus,
+  Loader2,
+  Phone,
+  Mail,
+  MessageSquare,
+  Video,
+  FileText,
+  FileSignature,
+} from "lucide-react";
+import { toast } from "sonner";
 
-import { Button } from '@/components/ui/button'
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -24,62 +33,65 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import type { Atividade, AtividadeTipo, User } from '@/lib/types'
-
-// ── Schema ────────────────────────────────────────────────────────────────────
+} from "@/components/ui/select";
+import type { Atividade, AtividadeTipo, User } from "@/lib/types";
 
 const atividadeSchema = z.object({
-  tipo: z.enum(['reuniao', 'ligacao', 'email', 'mensagem', 'proposta', 'contrato']),
-  associacaoTipo: z.enum(['cliente', 'lead']),
-  associacaoId: z.string().min(1, 'Selecione um cliente ou lead'),
-  responsavelId: z.string().uuid('Selecione um responsável'),
-  ocorridoEm: z.string().min(1, 'Informe a data e hora'),
-  descricao: z.string().min(3, 'Descreva a atividade'),
+  tipo: z.enum([
+    "reuniao",
+    "ligacao",
+    "email",
+    "mensagem",
+    "proposta",
+    "contrato",
+  ]),
+  associacaoTipo: z.enum(["cliente", "lead"]),
+  associacaoId: z.string().min(1, "Selecione um cliente ou lead"),
+  responsavelId: z.string().uuid("Selecione um responsável"),
+  ocorridoEm: z.string().min(1, "Informe a data e hora"),
+  descricao: z.string().min(3, "Descreva a atividade"),
   resultado: z.string().optional(),
   proximoPasso: z.string().optional(),
-})
+});
 
-type AtividadeFormValues = z.infer<typeof atividadeSchema>
+type AtividadeFormValues = z.infer<typeof atividadeSchema>;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const TIPO_CONFIG: Record<AtividadeTipo, { label: string; icon: React.ElementType }> = {
-  reuniao:  { label: 'Reunião',   icon: Video },
-  ligacao:  { label: 'Ligação',   icon: Phone },
-  email:    { label: 'E-mail',    icon: Mail },
-  mensagem: { label: 'Mensagem',  icon: MessageSquare },
-  proposta: { label: 'Proposta',  icon: FileText },
-  contrato: { label: 'Contrato',  icon: FileSignature },
-}
+const TIPO_CONFIG: Record<
+  AtividadeTipo,
+  { label: string; icon: React.ElementType }
+> = {
+  reuniao: { label: "Reunião", icon: Video },
+  ligacao: { label: "Ligação", icon: Phone },
+  email: { label: "E-mail", icon: Mail },
+  mensagem: { label: "Mensagem", icon: MessageSquare },
+  proposta: { label: "Proposta", icon: FileText },
+  contrato: { label: "Contrato", icon: FileSignature },
+};
 
 function nowLocalDatetime() {
-  const now = new Date()
-  now.setSeconds(0, 0)
-  return now.toISOString().slice(0, 16)
+  const now = new Date();
+  now.setSeconds(0, 0);
+  return now.toISOString().slice(0, 16);
 }
-
-// ── Componente ────────────────────────────────────────────────────────────────
 
 interface NovaAtividadeDialogProps {
-  onAtividadeCriada: (atividade: Atividade) => void
-  /** Se já soubermos o contexto (ex: dentro de um card de cliente) */
-  defaultAssociacaoTipo?: 'cliente' | 'lead'
-  defaultAssociacaoId?: string
-  defaultAssociacaoNome?: string
-  trigger?: React.ReactNode
+  onAtividadeCriada: (atividade: Atividade) => void;
+  defaultAssociacaoTipo?: "cliente" | "lead";
+  defaultAssociacaoId?: string;
+  defaultAssociacaoNome?: string;
+  trigger?: React.ReactNode;
 }
 
-type AssocOption = { id: string; nome: string }
+type AssocOption = { id: string; nome: string };
 
 export function NovaAtividadeDialog({
   onAtividadeCriada,
@@ -88,85 +100,92 @@ export function NovaAtividadeDialog({
   defaultAssociacaoNome,
   trigger,
 }: NovaAtividadeDialogProps) {
-  const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [team, setTeam] = useState<User[]>([])
-  const [assocOptions, setAssocOptions] = useState<AssocOption[]>([])
-  const [assocLoading, setAssocLoading] = useState(false)
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [team, setTeam] = useState<User[]>([]);
+  const [assocOptions, setAssocOptions] = useState<AssocOption[]>([]);
+  const [assocLoading, setAssocLoading] = useState(false);
 
   const form = useForm<AtividadeFormValues>({
     resolver: zodResolver(atividadeSchema),
     defaultValues: {
-      tipo: 'reuniao',
-      associacaoTipo: defaultAssociacaoTipo ?? 'cliente',
-      associacaoId: defaultAssociacaoId ?? '',
-      responsavelId: '',
+      tipo: "reuniao",
+      associacaoTipo: defaultAssociacaoTipo ?? "cliente",
+      associacaoId: defaultAssociacaoId ?? "",
+      responsavelId: "",
       ocorridoEm: nowLocalDatetime(),
-      descricao: '',
-      resultado: '',
-      proximoPasso: '',
+      descricao: "",
+      resultado: "",
+      proximoPasso: "",
     },
-  })
+  });
 
-  const associacaoTipo = form.watch('associacaoTipo')
+  const associacaoTipo = form.watch("associacaoTipo");
 
   // Busca equipe ao abrir
   useEffect(() => {
-    if (!open) return
-    fetch('/api/team')
+    if (!open) return;
+    fetch("/api/team")
       .then((r) => r.json())
       .then((j) => setTeam(j.data ?? []))
-      .catch(console.error)
-  }, [open])
+      .catch(console.error);
+  }, [open]);
 
   // Busca clientes ou leads ao trocar o tipo de associação
-  const fetchAssocOptions = useCallback(async (tipo: 'cliente' | 'lead') => {
-    setAssocLoading(true)
+  const fetchAssocOptions = useCallback(async (tipo: "cliente" | "lead") => {
+    setAssocLoading(true);
     try {
-      const url = tipo === 'cliente' ? '/api/clientes' : '/api/pipeline'
-      const res = await fetch(url)
-      const json = await res.json()
+      const url = tipo === "cliente" ? "/api/clientes" : "/api/pipeline";
+      const res = await fetch(url);
+      const json = await res.json();
       const items: AssocOption[] = (json.data ?? []).map(
         (item: { id: string; name?: string; companyName?: string }) => ({
           id: item.id,
           nome: item.name ?? item.companyName ?? item.id,
         }),
-      )
-      setAssocOptions(items)
+      );
+      setAssocOptions(items);
     } catch {
-      setAssocOptions([])
+      setAssocOptions([]);
     } finally {
-      setAssocLoading(false)
+      setAssocLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
     if (defaultAssociacaoId && defaultAssociacaoNome) {
-      setAssocOptions([{ id: defaultAssociacaoId, nome: defaultAssociacaoNome }])
-      return
+      setAssocOptions([
+        { id: defaultAssociacaoId, nome: defaultAssociacaoNome },
+      ]);
+      return;
     }
-    fetchAssocOptions(associacaoTipo)
-  }, [open, associacaoTipo, defaultAssociacaoId, defaultAssociacaoNome, fetchAssocOptions])
+    fetchAssocOptions(associacaoTipo);
+  }, [
+    open,
+    associacaoTipo,
+    defaultAssociacaoId,
+    defaultAssociacaoNome,
+    fetchAssocOptions,
+  ]);
 
   // Se o tipo de associação mudar, limpar a seleção
   useEffect(() => {
     if (!defaultAssociacaoId) {
-      form.setValue('associacaoId', '')
+      form.setValue("associacaoId", "");
     }
-  }, [associacaoTipo, defaultAssociacaoId, form])
+  }, [associacaoTipo, defaultAssociacaoId, form]);
 
   async function onSubmit(values: AtividadeFormValues) {
     const assocNome =
       defaultAssociacaoNome ??
-      assocOptions.find((o) => o.id === values.associacaoId)?.nome ??
-      ''
+      assocOptions.find((o) => o.id === values.associacaoId)?.nome ?? "";
 
-    setLoading(true)
+    setLoading(true);
     try {
-      const res = await fetch('/api/atividades', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/atividades", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...values,
           associacaoNome: assocNome,
@@ -174,29 +193,29 @@ export function NovaAtividadeDialog({
           resultado: values.resultado || undefined,
           proximoPasso: values.proximoPasso || undefined,
         }),
-      })
+      });
 
-      if (!res.ok) throw new Error('Erro ao registrar atividade')
+      if (!res.ok) throw new Error("Erro ao registrar atividade");
 
-      const { data: nova } = await res.json()
-      onAtividadeCriada(nova)
-      toast.success('Atividade registrada!')
-      setOpen(false)
+      const { data: nova } = await res.json();
+      onAtividadeCriada(nova);
+      toast.success("Atividade registrada!");
+      setOpen(false);
       form.reset({
-        tipo: 'reuniao',
-        associacaoTipo: defaultAssociacaoTipo ?? 'cliente',
-        associacaoId: defaultAssociacaoId ?? '',
-        responsavelId: '',
+        tipo: "reuniao",
+        associacaoTipo: defaultAssociacaoTipo ?? "cliente",
+        associacaoId: defaultAssociacaoId ?? "",
+        responsavelId: "",
         ocorridoEm: nowLocalDatetime(),
-        descricao: '',
-        resultado: '',
-        proximoPasso: '',
-      })
+        descricao: "",
+        resultado: "",
+        proximoPasso: "",
+      });
     } catch (err) {
-      console.error(err)
-      toast.error('Não foi possível registrar a atividade.')
+      console.error(err);
+      toast.error("Não foi possível registrar a atividade.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -221,7 +240,6 @@ export function NovaAtividadeDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-
             {/* Tipo da atividade */}
             <FormField
               control={form.control}
@@ -230,23 +248,26 @@ export function NovaAtividadeDialog({
                 <FormItem>
                   <FormLabel>Tipo</FormLabel>
                   <div className="grid grid-cols-3 gap-2">
-                    {(Object.entries(TIPO_CONFIG) as [AtividadeTipo, typeof TIPO_CONFIG[AtividadeTipo]][]).map(
-                      ([value, { label, icon: Icon }]) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => field.onChange(value)}
-                          className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
-                            field.value === value
-                              ? 'border-primary bg-primary/10 text-primary font-medium'
-                              : 'border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground'
-                          }`}
-                        >
-                          <Icon className="h-4 w-4 shrink-0" />
-                          {label}
-                        </button>
-                      ),
-                    )}
+                    {(
+                      Object.entries(TIPO_CONFIG) as [
+                        AtividadeTipo,
+                        (typeof TIPO_CONFIG)[AtividadeTipo],
+                      ][]
+                    ).map(([value, { label, icon: Icon }]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => field.onChange(value)}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                          field.value === value
+                            ? "border-primary bg-primary/10 text-primary font-medium"
+                            : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        {label}
+                      </button>
+                    ))}
                   </div>
                   <FormMessage />
                 </FormItem>
@@ -262,7 +283,10 @@ export function NovaAtividadeDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Tipo de associação</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue />
@@ -284,7 +308,7 @@ export function NovaAtividadeDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
-                        {associacaoTipo === 'cliente' ? 'Cliente' : 'Lead'}
+                        {associacaoTipo === "cliente" ? "Cliente" : "Lead"}
                       </FormLabel>
                       <Select
                         onValueChange={field.onChange}
@@ -293,7 +317,11 @@ export function NovaAtividadeDialog({
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={assocLoading ? 'Carregando…' : 'Selecione'} />
+                            <SelectValue
+                              placeholder={
+                                assocLoading ? "Carregando…" : "Selecione"
+                              }
+                            />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -379,7 +407,12 @@ export function NovaAtividadeDialog({
                 name="resultado"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Resultado <span className="text-muted-foreground text-xs">(opcional)</span></FormLabel>
+                    <FormLabel>
+                      Resultado{" "}
+                      <span className="text-muted-foreground text-xs">
+                        (opcional)
+                      </span>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Ex: Cliente interessado" {...field} />
                     </FormControl>
@@ -393,7 +426,12 @@ export function NovaAtividadeDialog({
                 name="proximoPasso"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Próximo passo <span className="text-muted-foreground text-xs">(opcional)</span></FormLabel>
+                    <FormLabel>
+                      Próximo passo{" "}
+                      <span className="text-muted-foreground text-xs">
+                        (opcional)
+                      </span>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="Ex: Enviar proposta" {...field} />
                     </FormControl>
@@ -413,5 +451,5 @@ export function NovaAtividadeDialog({
         </Form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

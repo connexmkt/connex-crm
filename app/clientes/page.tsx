@@ -9,20 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, LayoutGrid, List, Loader2 } from "lucide-react";
 
-// ─── Components ─────────────────────────────────────────────────────────────
 import ClienteFormDialog from "./components/ClienteFormDialog";
 import ClientDrawer from "./components/ClientDrawer";
 import TableView from "./components/TableView";
 import GridView from "./components/GridView";
 import DeleteModal from "./components/DeleteModal";
 
-// ─── Constants ──────────────────────────────────────────────────────────────
 import { statusFilters } from "./constants/status-filters";
 
-// ─── Hooks ──────────────────────────────────────────────────────────────────
 import { useClientes } from "./hooks/useClientes";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
 import type { Client } from "@/lib/types";
 
 export default function ClientesPage() {

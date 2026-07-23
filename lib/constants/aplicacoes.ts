@@ -30,11 +30,4 @@ export const APLICACOES: Aplicacao[] = [
     icone: Workflow,
     disponivel: false,
   },
-  {
-    slug: "assistente-ia",
-    nome: "Assistente IA",
-    descricao: "Integração com assistentes de IA da Connex.",
-    icone: Bot,
-    disponivel: false,
-  },
 ];

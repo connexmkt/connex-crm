@@ -17,12 +17,18 @@ vi.mock("@/lib/integrations/connex-insights/admin-client", () => ({
 vi.mock("@/lib/repositories/connex-insights-remote.repository", () => ({
   ConnexInsightsRemoteRepository: {
     countUsers: vi.fn(),
-    countTenants: vi.fn(),
+  },
+}));
+
+vi.mock("@/lib/services/connex-insights-tenants.service", () => ({
+  ConnexInsightsTenantsService: {
+    count: vi.fn(),
   },
 }));
 
 import { GET } from "@/app/api/aplicacoes/connex-insights/dashboard/route";
 import { ConnexInsightsRemoteRepository } from "@/lib/repositories/connex-insights-remote.repository";
+import { ConnexInsightsTenantsService } from "@/lib/services/connex-insights-tenants.service";
 
 describe("GET /api/aplicacoes/connex-insights/dashboard — indisponibilidade", () => {
   beforeEach(() => {
@@ -34,7 +40,7 @@ describe("GET /api/aplicacoes/connex-insights/dashboard — indisponibilidade", 
     vi.mocked(ConnexInsightsRemoteRepository.countUsers).mockRejectedValue(
       new Error("connection refused"),
     );
-    vi.mocked(ConnexInsightsRemoteRepository.countTenants).mockResolvedValue(2);
+    vi.mocked(ConnexInsightsTenantsService.count).mockResolvedValue(2);
 
     const response = await GET();
     const json = await response.json();
@@ -45,7 +51,7 @@ describe("GET /api/aplicacoes/connex-insights/dashboard — indisponibilidade", 
 
   it("retorna 200 com os indicadores quando ambas as consultas funcionam", async () => {
     vi.mocked(ConnexInsightsRemoteRepository.countUsers).mockResolvedValue(10);
-    vi.mocked(ConnexInsightsRemoteRepository.countTenants).mockResolvedValue(2);
+    vi.mocked(ConnexInsightsTenantsService.count).mockResolvedValue(2);
 
     const response = await GET();
     const json = await response.json();

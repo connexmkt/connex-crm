@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { slugify } from "@/lib/utils/slugify";
 
 export interface ConnexInsightsTenant {
   id: string;
@@ -40,37 +41,27 @@ export const ConnexInsightsRemoteRepository = {
     return count ?? 0;
   },
 
-  async countTenants(admin: SupabaseClient): Promise<number> {
-    const { count, error } = await admin
-      .from("tenants")
-      .select("*", { count: "exact", head: true });
-
-    if (error) throw error;
-    return count ?? 0;
-  },
-
-  async listTenants(admin: SupabaseClient): Promise<ConnexInsightsTenant[]> {
-    const { data, error } = await admin
-      .from("tenants")
-      .select("id, name")
-      .order("name", { ascending: true });
-
-    if (error) throw error;
-    return (data ?? []) as ConnexInsightsTenant[];
-  },
-
-  async findTenantById(
+  /**
+   * Garante que exista, no Supabase do Connex Insights, um tenant com o
+   * mesmo `id` do cliente do CRM (`clientes.id`), criando-o se necessário
+   * ou atualizando o nome/slug quando já existir. A lista de clientes em
+   * `/clientes` é a única fonte de verdade sobre quais tenants existem —
+   * este método é o único ponto que escreve na tabela remota `tenants`.
+   */
+  async upsertTenant(
     admin: SupabaseClient,
-    tenantId: string,
-  ): Promise<ConnexInsightsTenant | null> {
+    input: { id: string; name: string },
+  ): Promise<ConnexInsightsTenant> {
+    const slug = `${slugify(input.name)}-${input.id.slice(0, 8)}`;
+
     const { data, error } = await admin
       .from("tenants")
+      .upsert({ id: input.id, name: input.name, slug }, { onConflict: "id" })
       .select("id, name")
-      .eq("id", tenantId)
-      .maybeSingle();
+      .single();
 
     if (error) throw error;
-    return (data as ConnexInsightsTenant | null) ?? null;
+    return data as ConnexInsightsTenant;
   },
 
   async listUsers(

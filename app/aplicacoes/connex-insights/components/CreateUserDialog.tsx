@@ -34,13 +34,13 @@ import {
   criarUsuarioSchema,
   type CriarUsuarioInput,
 } from "@/app/aplicacoes/schemas/criar-usuario.schema";
-import type { ConnexInsightsTenant } from "@/lib/repositories/connex-insights-remote.repository";
+import type { ConnexInsightsTenantOption } from "@/lib/services/connex-insights-tenants.service";
 import { CreateUserErrorModal } from "./CreateUserErrorModal";
 
 interface CreateUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  tenants: ConnexInsightsTenant[];
+  tenants: ConnexInsightsTenantOption[];
   onCreated: (temporaryPassword: string) => void;
 }
 

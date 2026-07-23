@@ -27,15 +27,22 @@ vi.mock("@/lib/repositories/insights-provisioning.repository", () => ({
 
 vi.mock("@/lib/repositories/connex-insights-remote.repository", () => ({
   ConnexInsightsRemoteRepository: {
-    findTenantById: vi.fn(),
+    upsertTenant: vi.fn(),
     createAuthUser: vi.fn(),
     insertProfile: vi.fn(),
     deleteAuthUser: vi.fn(),
   },
 }));
 
+vi.mock("@/lib/repositories/clientes.repository", () => ({
+  ClientesRepository: {
+    findById: vi.fn(),
+  },
+}));
+
 import { InsightsProvisioningRepository } from "@/lib/repositories/insights-provisioning.repository";
 import { ConnexInsightsRemoteRepository } from "@/lib/repositories/connex-insights-remote.repository";
+import { ClientesRepository } from "@/lib/repositories/clientes.repository";
 import { AuditLogRepository } from "@/lib/repositories/audit-log.repository";
 import { ConnexInsightsProvisioningService } from "@/lib/services/connex-insights-provisioning.service";
 import type { CriarUsuarioInput } from "@/app/aplicacoes/schemas/criar-usuario.schema";
@@ -51,6 +58,9 @@ const input: CriarUsuarioInput = {
 const context = { requestedByProfileId: "admin-1", requestId: "req-1" };
 const crmSupabase = {} as SupabaseClient;
 
+// `tenantId` é o `id` do cliente cadastrado em /clientes — única fonte de
+// verdade sobre os tenants (ver connex-insights-tenants.service.ts).
+const cliente = { id: input.tenantId, name: "Zeh Motoca" };
 const tenant = { id: input.tenantId, name: "Zeh Motoca" };
 const pendingRow = { id: "pending-1" };
 
@@ -58,7 +68,8 @@ describe("ConnexInsightsProvisioningService.createUser", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(InsightsProvisioningRepository.findByEmailOrLogin).mockResolvedValue(null);
-    vi.mocked(ConnexInsightsRemoteRepository.findTenantById).mockResolvedValue(tenant);
+    vi.mocked(ClientesRepository.findById).mockResolvedValue(cliente as never);
+    vi.mocked(ConnexInsightsRemoteRepository.upsertTenant).mockResolvedValue(tenant);
     vi.mocked(InsightsProvisioningRepository.createPending).mockResolvedValue(pendingRow as never);
     vi.mocked(ConnexInsightsRemoteRepository.createAuthUser).mockResolvedValue({
       authUserId: "auth-user-1",
@@ -104,12 +115,13 @@ describe("ConnexInsightsProvisioningService.createUser", () => {
     expect(ConnexInsightsRemoteRepository.createAuthUser).not.toHaveBeenCalled();
   });
 
-  it("tenant não encontrado: retorna TENANT_NOT_FOUND", async () => {
-    vi.mocked(ConnexInsightsRemoteRepository.findTenantById).mockResolvedValue(null);
+  it("cliente/tenant não encontrado: retorna TENANT_NOT_FOUND", async () => {
+    vi.mocked(ClientesRepository.findById).mockRejectedValue(new Error("not found"));
 
     const result = await ConnexInsightsProvisioningService.createUser(input, context, crmSupabase);
 
     expect(result).toEqual({ status: "TENANT_NOT_FOUND" });
+    expect(ConnexInsightsRemoteRepository.upsertTenant).not.toHaveBeenCalled();
   });
 
   it("requisições concorrentes: violação de UNIQUE ao criar o PENDING resulta em FAILED_DUPLICATE", async () => {

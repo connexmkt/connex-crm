@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CriarUsuarioInput } from "@/app/aplicacoes/schemas/criar-usuario.schema";
 import { InsightsProvisioningRepository } from "@/lib/repositories/insights-provisioning.repository";
 import { ConnexInsightsRemoteRepository } from "@/lib/repositories/connex-insights-remote.repository";
+import { ClientesRepository } from "@/lib/repositories/clientes.repository";
 import { AuditLogRepository } from "@/lib/repositories/audit-log.repository";
 import { createConnexInsightsAdminClient } from "@/lib/integrations/connex-insights/admin-client";
 import { generateTemporaryPassword } from "@/lib/utils/generate-temporary-password";
@@ -34,7 +35,7 @@ export const ConnexInsightsProvisioningService = {
     const startedAt = Date.now();
     const admin = createConnexInsightsAdminClient();
 
-    const outcome = await runProvisioning(input, context, admin);
+    const outcome = await runProvisioning(input, context, admin, crmSupabase);
 
     logProvisioningEvent({
       endpoint: "/api/aplicacoes/connex-insights/usuarios",
@@ -67,6 +68,7 @@ async function runProvisioning(
   input: CriarUsuarioInput,
   context: ProvisioningContext,
   admin: SupabaseClient,
+  crmSupabase: SupabaseClient,
 ): Promise<ProvisioningOutcome> {
   // Camada 1 de idempotência: duplicidade local antes de qualquer chamada externa.
   const existingLocal = await InsightsProvisioningRepository.findByEmailOrLogin(
@@ -77,8 +79,17 @@ async function runProvisioning(
     return { status: "FAILED_DUPLICATE" };
   }
 
-  const tenant = await ConnexInsightsRemoteRepository.findTenantById(admin, input.tenantId);
-  if (!tenant) return { status: "TENANT_NOT_FOUND" };
+  // `input.tenantId` é, na verdade, o `id` de um cliente cadastrado em
+  // `/clientes` — única fonte de verdade sobre os tenants. Garante que o
+  // tenant remoto correspondente exista (cria/atualiza sob demanda) antes
+  // de provisionar o usuário.
+  const cliente = await findClienteById(crmSupabase, input.tenantId);
+  if (!cliente) return { status: "TENANT_NOT_FOUND" };
+
+  const tenant = await ConnexInsightsRemoteRepository.upsertTenant(admin, {
+    id: cliente.id,
+    name: cliente.name,
+  });
 
   const pending = await createPendingRequest(input, context, tenant);
   if (!pending) return { status: "FAILED_DUPLICATE" };
@@ -103,6 +114,14 @@ async function runProvisioning(
   }
 
   return finalizeWithProfile(admin, pending.id, authUserId, tenant.id, input, temporaryPassword);
+}
+
+async function findClienteById(crmSupabase: SupabaseClient, clienteId: string) {
+  try {
+    return await ClientesRepository.findById(crmSupabase, clienteId);
+  } catch {
+    return null;
+  }
 }
 
 async function createPendingRequest(

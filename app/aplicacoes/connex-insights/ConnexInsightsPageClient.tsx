@@ -3,9 +3,7 @@
 import { useCallback, useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type {
-  ConnexInsightsTenant,
-} from "@/lib/repositories/connex-insights-remote.repository";
+import type { ConnexInsightsTenantOption } from "@/lib/services/connex-insights-tenants.service";
 import { DashboardStats } from "./components/DashboardStats";
 import { UsersTable } from "./components/UsersTable";
 import { CreateUserDialog } from "./components/CreateUserDialog";
@@ -15,7 +13,7 @@ import { useConnexInsightsUsers, type UsersPage } from "./hooks/useConnexInsight
 interface ConnexInsightsPageClientProps {
   initialDashboard: { totalUsers: number; totalTenants: number } | null;
   initialUsers: UsersPage;
-  tenants: ConnexInsightsTenant[];
+  tenants: ConnexInsightsTenantOption[];
   loadError: boolean;
 }
 
@@ -70,7 +68,7 @@ export function ConnexInsightsPageClient({
         <h2 className="font-heading text-lg font-semibold">Usuários</h2>
         <Button onClick={() => setDialogOpen(true)} className="gap-2">
           <Plus className="h-4 w-4" />
-          Criar usuário
+          Criar acesso
         </Button>
       </div>
 

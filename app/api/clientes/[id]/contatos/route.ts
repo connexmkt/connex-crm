@@ -1,30 +1,3 @@
-/**
- * GET /api/clientes/:id/contatos
- *
- * Response 200: { data: ClientContato[] }
- * Response 401: Unauthorized
- * Response 404: Cliente não encontrado
- * Response 500: Internal Server Error
- *
- * ─────────────────────────────────────────────────────────────────────────────
- *
- * POST /api/clientes/:id/contatos
- *
- * Body (JSON):
- *   name              string  (1–100 chars)
- *   role              string  (1–100 chars — cargo)
- *   type              'decisor' | 'financeiro' | 'operacional' | 'outro'
- *   email?            string  (email válido)
- *   whatsapp?         string  (mín. 8 chars)
- *   preferredChannel? 'email' | 'whatsapp' | 'phone' | 'outro'
- *
- * Response 201: { data: ClientContato }
- * Response 400: Bad Request
- * Response 401: Unauthorized
- * Response 404: Cliente não encontrado
- * Response 500: Internal Server Error
- */
-
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/server'

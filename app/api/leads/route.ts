@@ -1,27 +1,18 @@
-/**
- * GET /api/leads
- *
- * Retorna todos os leads do pipeline.
- * Dados simulados no servidor até a tabela `leads` existir no Supabase.
- *
- * Response 200: { data: Lead[] }
- * Response 401: Unauthorized
- * Response 500: Internal Server Error
- */
-
-import { createClient } from '@/lib/server'
-import { ok, unauthorized, serverError } from '@/lib/api/response'
-import { MOCK_LEADS } from '@/lib/mocks/leads'
+import { createClient } from "@/lib/server";
+import { ok, unauthorized, serverError } from "@/lib/api/response";
+import { MOCK_LEADS } from "@/lib/mocks/leads";
 
 export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return unauthorized()
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return unauthorized();
 
   try {
-    return ok(MOCK_LEADS)
+    return ok(MOCK_LEADS);
   } catch (err) {
-    console.error('[GET /api/leads]', err)
-    return serverError()
+    console.error("[GET /api/leads]", err);
+    return serverError();
   }
 }

@@ -1,18 +1,3 @@
-/**
- * GET /api/dashboard
- *
- * Retorna todos os dados necessários para o Dashboard:
- *   - kpiData     — métricas agregadas (clientes e leads reais do Supabase)
- *   - pipelineChartData — distribuição do funil (dados reais)
- *   - activities  — atividades recentes (vazio até tabela existir)
- *   - tasks       — próximas tarefas (dados reais)
- *   - atRiskClients — clientes com status "Em risco" (dados reais do Supabase)
- *
- * Response 200: { data: DashboardPayload }
- * Response 401: Unauthorized
- * Response 500: Internal Server Error
- */
-
 import { createClient } from "@/lib/server";
 import { ok, unauthorized, serverError } from "@/lib/api/response";
 import type { Atividade, Task, Client, User, PipelineStage } from "@/lib/types";
@@ -147,12 +132,12 @@ export async function GET() {
     });
 
     // 5. Atividades recentes — isolado para não derrubar o dashboard inteiro
-    const activities = await AtividadesService.list(supabase, { limit: 10 }).catch(
-      (err) => {
-        console.error("[Dashboard] atividades fetch error:", err);
-        return [];
-      },
-    );
+    const activities = await AtividadesService.list(supabase, {
+      limit: 10,
+    }).catch((err) => {
+      console.error("[Dashboard] atividades fetch error:", err);
+      return [];
+    });
 
     const kpiData: KpiData = {
       totalClientes,

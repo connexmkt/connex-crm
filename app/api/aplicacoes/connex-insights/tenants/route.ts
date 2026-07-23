@@ -1,15 +1,3 @@
-/**
- * GET /api/aplicacoes/connex-insights/tenants
- *
- * Lista todos os tenants existentes na Connex Insights, para popular o
- * seletor do formulário de criação de usuário (FR-011). Requer usuário
- * autenticado no CRM.
- *
- * Response 200: { data: { items: Array<{ id: string, name: string }> } }
- * Response 401: Unauthorized
- * Response 502: Connex Insights indisponível
- */
-
 export const runtime = "nodejs";
 
 import { checkAuth } from "@/lib/auth/require-auth";

@@ -1,33 +1,8 @@
-/**
- * PATCH /api/pipeline/:id/stage
- *
- * Move um lead para um novo estágio no kanban.
- * Reseta o contador de dias no estágio (stageEnteredAt = now()).
- *
- * Body (JSON):
- *   stage        PipelineStage  (obrigatório)
- *   lostReason?  string         (obrigatório quando stage = 'perdido')
- *   meetingDate? string         (date YYYY-MM-DD, recomendado quando stage = 'reuniao_agendada')
- *   clienteId?   string         (UUID, opcional quando stage = 'fechado' — vincula a um cliente existente)
- *
- * Regras de negócio:
- *   - 'perdido'          → lostReason é obrigatório
- *   - 'reuniao_agendada' → meetingDate é persitido no card se informado
- *   - 'fechado'          → clienteId opcional para vincular o lead convertido
- *
- * Response 200: { data: PipelineLead }
- * Response 400: Bad Request (validação ou regra de negócio)
- * Response 401: Unauthorized
- * Response 404: Lead não encontrado
- * Response 500: Internal Server Error
- */
-
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/server";
 import { PipelineService } from "@/lib/services/pipeline.service";
 import { NotificationsService } from "@/lib/services/notifications.service";
-import { LOST_REASON_OPTIONS } from "@/lib/constants/pipeline";
 
 import {
   ok,

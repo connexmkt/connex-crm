@@ -1,39 +1,3 @@
-/**
- * GET /api/clientes/:id
- *
- * Response 200: { data: Client }
- * Response 401: Unauthorized
- * Response 404: Cliente não encontrado
- * Response 500: Internal Server Error
- *
- * ─────────────────────────────────────────────────────────────────────────────
- *
- * PUT /api/clientes/:id
- *
- * Body (JSON) — todos os campos são opcionais:
- *   name?           string  (2–100 chars)
- *   segment?        string
- *   status?         'Ativo' | 'Lead' | 'Inativo' | 'Em risco'
- *   contractValue?  number  (positive)
- *   logo?           string  (URL)
- *   contact?        { email, phone, website? }
- *
- * Response 200: { data: Client }
- * Response 400: Bad Request (erros de validação)
- * Response 401: Unauthorized
- * Response 404: Cliente não encontrado
- * Response 500: Internal Server Error
- *
- * ─────────────────────────────────────────────────────────────────────────────
- *
- * DELETE /api/clientes/:id
- *
- * Response 204: No Content
- * Response 401: Unauthorized
- * Response 404: Cliente não encontrado
- * Response 500: Internal Server Error
- */
-
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/server";

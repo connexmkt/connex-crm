@@ -1,23 +1,3 @@
-/**
- * POST /api/auth/register
- *
- * Cria um novo usuário no Supabase Auth e insere o perfil na tabela `profiles`.
- * Apenas usuários com role 'Admin' podem registrar novos usuários.
- *
- * Body (JSON):
- *   email     string  (email válido)
- *   password  string  (mín. 8 chars)
- *   name      string  (2–100 chars)
- *   role      'Admin' | 'Gestor' | 'Analista'
- *
- * Response 201: { data: { id, email, name, role } }
- * Response 400: Bad Request (validação)
- * Response 401: Unauthorized
- * Response 403: Forbidden (role insuficiente)
- * Response 409: E-mail já cadastrado
- * Response 500: Internal Server Error
- */
-
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/server'

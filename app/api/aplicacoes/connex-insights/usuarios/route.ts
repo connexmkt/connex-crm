@@ -1,27 +1,3 @@
-/**
- * GET /api/aplicacoes/connex-insights/usuarios
- *
- * Lista usuários do Connex Insights, paginada, com nome do tenant (FR-007).
- * Query params: page? (default 1), limit? (default 20, max 100).
- * Requer usuário autenticado no CRM.
- *
- * Response 200: { data: { items: ConnexInsightsUserRow[], total, page, limit } }
- *
- * ─────────────────────────────────────────────────────────────────────────
- *
- * POST /api/aplicacoes/connex-insights/usuarios
- *
- * Cria um novo usuário no Connex Insights (FR-012 a FR-017). Body:
- *   name string, email string, login string, tenantId string (uuid).
- *
- * Response 201: { data: { temporaryPassword, profileId } }
- * Response 400: Bad Request (validação Zod)
- * Response 401: Unauthorized
- * Response 404: Tenant não encontrado
- * Response 409: E-mail/login já em uso
- * Response 502: Falha de comunicação com o Connex Insights
- */
-
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
@@ -54,7 +30,9 @@ export async function GET(request: NextRequest) {
     return unauthorized();
   }
 
-  const parsed = listQuerySchema.safeParse(Object.fromEntries(request.nextUrl.searchParams));
+  const parsed = listQuerySchema.safeParse(
+    Object.fromEntries(request.nextUrl.searchParams),
+  );
   if (!parsed.success) return badRequest(parsed.error.flatten());
 
   try {
@@ -79,7 +57,8 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => null);
-  if (!body) return badRequest({ message: "JSON inválido no corpo da requisição" });
+  if (!body)
+    return badRequest({ message: "JSON inválido no corpo da requisição" });
 
   const parsed = criarUsuarioSchema.safeParse(body);
   if (!parsed.success) return badRequest(parsed.error.flatten());
@@ -109,7 +88,9 @@ export async function POST(request: NextRequest) {
         return badGateway();
       default: {
         const _exhaustive: never = outcome;
-        throw new Error(`Status de provisionamento não tratado: ${JSON.stringify(_exhaustive)}`);
+        throw new Error(
+          `Status de provisionamento não tratado: ${JSON.stringify(_exhaustive)}`,
+        );
       }
     }
   } catch (err) {

@@ -1,12 +1,10 @@
-import { requireAdminOrRedirect } from "@/lib/auth/require-admin";
+import { requireAuthOrRedirect } from "@/lib/auth/require-auth";
 import { AppShell } from "@/components/layout";
 import { APLICACOES } from "@/lib/constants/aplicacoes";
 import { AplicacaoCard } from "./components/AplicacaoCard";
 
 export default async function AplicacoesPage() {
-  // FR-004 / SEC-002: somente Admin acessa /aplicacoes; demais papéis são
-  // redirecionados para fora da página, mesmo via acesso direto pela URL.
-  await requireAdminOrRedirect();
+  await requireAuthOrRedirect();
 
   return (
     <AppShell title="Aplicações">

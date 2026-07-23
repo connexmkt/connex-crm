@@ -6,6 +6,8 @@
 
 **Status**: Draft
 
+> **Atualização (2026-07-22)**: a restrição de acesso por papel `Admin` foi removida a pedido do usuário após a implementação inicial. Qualquer usuário autenticado no CRM (independentemente do papel `Admin`/`Gestor`/`Analista`) pode acessar o hub `/aplicacoes`, visualizar o painel do Connex Insights e criar novos acessos. FR-004, SEC-002, SC-005 e os cenários de aceitação relacionados abaixo já refletem o novo comportamento; `tasks.md` mantém o histórico da implementação original (com guarda `role === 'Admin'`) para rastreabilidade.
+
 **Input**: User description: "Como um usuário admin do CRM, quero uma tela de cadastro de usuários para o Connex Insights. Na sidebar, irá ser criada uma nova aba (Aplicações) que irá direcionar para uma página nova (/aplicacoes). Lá irá conter todas as aplicações, automações, entre outros, que a Connex é dona. Ao acessar a página, irei selecionar a aplicação correspondente que desejo acessar. No caso da Connex Insights, deve haver um pequeno dashboard contendo quantidade de usuários e quantidade de tenants (clientes). Deve haver um botão de criação de usuário/acesso, lá irei preencher um formulário contendo o nome e email do usuário, login e tenant. A opção de tenant deve ser uma lista com todos os clientes da Connex, atualmente temos Zeh Motoca e ICON Fitbrands. O tenant obrigatoriamente deve estar associado ao usuário. Ao preencher o formulário e criar o usuário, deve ser disponibilizada uma senha temporária, que o usuário usará somente para o primeiro acesso. O fluxo deve ser: Criar o usuário pelo CRM -> fornecer o acesso e senha ao usuário -> usuário loga e acessa a plataforma Connex Insights."
 
 **Depende de (repositório externo `connex-insights`)**: [002-first-time-account-activation](../../../connex-insights/specs/002-first-time-account-activation/spec.md) — define o fluxo de ativação de conta com senha temporária que o usuário provisionado por esta feature deverá seguir no primeiro acesso à Connex Insights.
@@ -16,23 +18,23 @@
 
 ### User Story 1 — Acessar o hub de Aplicações (Priority: P1)
 
-Como admin do CRM, quero uma nova aba "Aplicações" na barra lateral que me leve a uma página central listando todos os produtos e automações de propriedade da Connex, para que eu possa escolher qual aplicação administrar.
+Como usuário autenticado do CRM, quero uma nova aba "Aplicações" na barra lateral que me leve a uma página central listando todos os produtos e automações de propriedade da Connex, para que eu possa escolher qual aplicação administrar.
 
 **Por que esta prioridade**: É o ponto de entrada obrigatório para todo o fluxo; sem o hub, não há como chegar à tela do Connex Insights.
 
-**Independent Test**: Pode ser testada fazendo login como admin, clicando em "Aplicações" na sidebar e verificando que a página `/aplicacoes` carrega listando ao menos o card "Connex Insights".
+**Independent Test**: Pode ser testada fazendo login com qualquer usuário do CRM, clicando em "Aplicações" na sidebar e verificando que a página `/aplicacoes` carrega listando ao menos o card "Connex Insights".
 
 **Acceptance Scenarios**:
 
-1. **Given** estou autenticado como admin do CRM, **When** clico em "Aplicações" na sidebar, **Then** sou levado à página `/aplicacoes`.
+1. **Given** estou autenticado no CRM, **When** clico em "Aplicações" na sidebar, **Then** sou levado à página `/aplicacoes`.
 2. **Given** estou na página `/aplicacoes`, **When** a página carrega, **Then** vejo um card "Connex Insights" clicável e demais cards de aplicações/automações futuras marcados como "Em breve" (não clicáveis).
-3. **Given** sou um usuário com papel diferente de Admin, **When** tento acessar `/aplicacoes` diretamente pela URL, **Then** o acesso é negado e sou redirecionado para fora da página.
+3. **Given** não estou autenticado no CRM, **When** tento acessar `/aplicacoes` diretamente pela URL, **Then** sou redirecionado para a tela de login.
 
 ---
 
 ### User Story 2 — Visualizar o painel do Connex Insights (Priority: P1)
 
-Como admin do CRM, quero, ao selecionar "Connex Insights" no hub, ver um pequeno dashboard com a quantidade total de usuários e de tenants (clientes) da plataforma, para entender rapidamente o tamanho da base antes de criar um novo acesso.
+Como usuário autenticado do CRM, quero, ao selecionar "Connex Insights" no hub, ver um pequeno dashboard com a quantidade total de usuários e de tenants (clientes) da plataforma, para entender rapidamente o tamanho da base antes de criar um novo acesso.
 
 **Por que esta prioridade**: Fornece contexto imediato e é a tela onde a ação principal (criar usuário) é iniciada.
 
@@ -48,7 +50,7 @@ Como admin do CRM, quero, ao selecionar "Connex Insights" no hub, ver um pequeno
 
 ### User Story 3 — Criar um novo acesso de usuário para o Connex Insights (Priority: P1)
 
-Como admin do CRM, quero preencher um formulário com nome, e-mail, login e tenant, e ao confirmar receber uma senha temporária, para provisionar um novo acesso à Connex Insights que eu possa entregar ao usuário final.
+Como usuário autenticado do CRM, quero preencher um formulário com nome, e-mail, login e tenant, e ao confirmar receber uma senha temporária, para provisionar um novo acesso à Connex Insights que eu possa entregar ao usuário final.
 
 **Por que esta prioridade**: É o núcleo de valor da feature — sem esta capacidade, o hub de Aplicações não resolve o problema de negócio (provisionar acesso sem depender de intervenção manual no banco de dados).
 
@@ -67,9 +69,9 @@ Como admin do CRM, quero preencher um formulário com nome, e-mail, login e tena
 
 ### Edge Cases
 
-- O que acontece se a conexão com a Connex Insights estiver indisponível no momento da criação? → A criação é bloqueada, nenhum registro parcial é deixado, e uma mensagem de erro amigável é exibida ao admin.
-- Como o sistema se comporta se dois admins tentarem criar o mesmo e-mail/login simultaneamente? → Apenas a primeira criação bem-sucedida deve prevalecer; a segunda deve falhar com mensagem de "já em uso".
-- O que acontece se o admin atualizar/recarregar a página de confirmação após a criação? → A senha temporária não pode ser recuperada novamente pela tela; o admin precisa criar um novo acesso ou seguir o processo de suporte já existente na Connex Insights caso a senha não tenha sido entregue.
+- O que acontece se a conexão com a Connex Insights estiver indisponível no momento da criação? → A criação é bloqueada, nenhum registro parcial é deixado, e uma mensagem de erro amigável é exibida ao usuário.
+- Como o sistema se comporta se dois usuários tentarem criar o mesmo e-mail/login simultaneamente? → Apenas a primeira criação bem-sucedida deve prevalecer; a segunda deve falhar com mensagem de "já em uso".
+- O que acontece se o usuário atualizar/recarregar a página de confirmação após a criação? → A senha temporária não pode ser recuperada novamente pela tela; o usuário precisa criar um novo acesso ou seguir o processo de suporte já existente na Connex Insights caso a senha não tenha sido entregue.
 - Como o formulário se comporta se a lista de tenants não puder ser carregada? → O botão "Criar usuário" fica desabilitado (ou o campo de tenant exibe estado de erro) até que a lista seja carregada com sucesso; a criação não pode ocorrer sem um tenant real selecionado.
 - O que acontece se um novo tenant for adicionado à Connex Insights depois desta feature estar em produção? → Ele deve aparecer automaticamente na lista de seleção, sem necessidade de alteração de código no CRM.
 
@@ -82,7 +84,7 @@ Como admin do CRM, quero preencher um formulário com nome, e-mail, login e tena
 - **FR-001**: O sistema DEVE exibir uma nova entrada "Aplicações" na navegação principal do CRM.
 - **FR-002**: A entrada "Aplicações" DEVE direcionar para uma página `/aplicacoes` contendo a lista de aplicações e automações de propriedade da Connex.
 - **FR-003**: A página `/aplicacoes` DEVE exibir "Connex Insights" como uma aplicação selecionável; demais aplicações/automações que ainda não possuem integração DEVEM ser exibidas como indisponíveis ("Em breve"), sem ação associada.
-- **FR-004**: Somente usuários com papel `Admin` DEVEM acessar a página `/aplicacoes` e suas subpáginas; demais papéis (`Gestor`, `Analista`) DEVEM ter o acesso negado.
+- **FR-004**: Qualquer usuário autenticado no CRM DEVE acessar a página `/aplicacoes` e suas subpáginas; usuários não autenticados DEVEM ser redirecionados para o login.
 
 #### Painel do Connex Insights
 
@@ -97,19 +99,19 @@ Como admin do CRM, quero preencher um formulário com nome, e-mail, login e tena
 - **FR-010**: O campo "tenant" DEVE ser uma seleção obrigatória a partir da lista de tenants existentes na Connex Insights (não texto livre); o formulário NÃO DEVE permitir submissão sem um tenant selecionado.
 - **FR-011**: A lista de tenants exibida no formulário DEVE ser obtida da Connex Insights e refletir automaticamente novos tenants cadastrados lá, sem necessidade de alteração de código no CRM.
 - **FR-012**: Todo usuário criado por esta feature DEVE ser associado a exatamente um tenant.
-- **FR-013**: Ao confirmar o formulário com dados válidos, o sistema DEVE provisionar a conta correspondente na Connex Insights com status inicial `INACTIVE` e uma senha temporária gerada automaticamente pelo sistema (não escolhida pelo admin).
-- **FR-014**: A senha temporária DEVE ser exibida ao admin uma única vez, imediatamente após a criação, para que seja copiada/entregue ao usuário final por um canal definido pelo processo interno da Connex (fora do sistema).
+- **FR-013**: Ao confirmar o formulário com dados válidos, o sistema DEVE provisionar a conta correspondente na Connex Insights com status inicial `INACTIVE` e uma senha temporária gerada automaticamente pelo sistema (não escolhida pelo usuário).
+- **FR-014**: A senha temporária DEVE ser exibida ao usuário uma única vez, imediatamente após a criação, para que seja copiada/entregue ao usuário final por um canal definido pelo processo interno da Connex (fora do sistema).
 - **FR-015**: A senha temporária NÃO DEVE ser persistida em texto plano em nenhuma tela ou registro consultável posteriormente pelo CRM.
 - **FR-016**: O sistema DEVE validar que e-mail e login informados são únicos na Connex Insights antes de concluir a criação; em caso de conflito, a criação DEVE ser rejeitada com mensagem amigável, sem revelar detalhes internos.
-- **FR-017**: Falhas de comunicação com a Connex Insights durante a criação DEVEM impedir a criação parcial do usuário (nenhum registro incompleto) e DEVEM ser comunicadas ao admin com mensagem amigável.
+- **FR-017**: Falhas de comunicação com a Connex Insights durante a criação DEVEM impedir a criação parcial do usuário (nenhum registro incompleto) e DEVEM ser comunicadas ao usuário com mensagem amigável.
 - **FR-018**: Todos os campos obrigatórios do formulário DEVEM ser validados tanto no cliente quanto no servidor antes da criação.
 
 ### Security & Access Control
 
 - **SEC-001**: Toda comunicação do CRM com a Connex Insights para leitura de indicadores, leitura de tenants e criação de usuários DEVE ocorrer exclusivamente em contexto de servidor, nunca expondo credenciais de acesso à Connex Insights ao cliente (navegador).
-- **SEC-002**: Apenas usuários com papel `Admin` no CRM DEVEM conseguir acionar a criação de usuários na Connex Insights.
+- **SEC-002**: Qualquer usuário autenticado no CRM DEVE conseguir acionar a criação de usuários na Connex Insights; usuários não autenticados NÃO DEVEM conseguir.
 - **SEC-003**: Toda entrada do formulário de criação DEVE ser validada via schema antes de qualquer chamada à Connex Insights.
-- **SEC-004**: Mensagens de erro exibidas ao admin NÃO DEVEM revelar detalhes de implementação, credenciais ou informações de outros tenants.
+- **SEC-004**: Mensagens de erro exibidas ao usuário NÃO DEVEM revelar detalhes de implementação, credenciais ou informações de outros tenants.
 
 ### Observability
 
@@ -127,19 +129,19 @@ Como admin do CRM, quero preencher um formulário com nome, e-mail, login e tena
 
 ### Measurable Outcomes
 
-- **SC-001**: Um admin do CRM consegue localizar o hub de Aplicações e chegar à tela do Connex Insights em no máximo 2 cliques a partir de qualquer página do CRM.
-- **SC-002**: Um admin consegue concluir a criação de um novo acesso (do clique em "Criar usuário" até a exibição da senha temporária) em menos de 1 minuto, assumindo dados válidos em mãos.
+- **SC-001**: Um usuário do CRM consegue localizar o hub de Aplicações e chegar à tela do Connex Insights em no máximo 2 cliques a partir de qualquer página do CRM.
+- **SC-002**: Um usuário consegue concluir a criação de um novo acesso (do clique em "Criar usuário" até a exibição da senha temporária) em menos de 1 minuto, assumindo dados válidos em mãos.
 - **SC-003**: 100% das tentativas de criação com e-mail ou login já existentes na Connex Insights são rejeitadas com mensagem clara, sem gerar contas duplicadas.
 - **SC-004**: 100% dos usuários criados por esta feature iniciam com status `INACTIVE` e uma senha temporária válida, consistente com o fluxo de ativação já existente na Connex Insights.
-- **SC-005**: 100% das tentativas de acesso ao hub de Aplicações por papéis diferentes de `Admin` são bloqueadas.
+- **SC-005**: 100% das tentativas de acesso ao hub de Aplicações por usuários não autenticados são redirecionadas para o login.
 - **SC-006**: Os indicadores de quantidade de usuários e tenants exibidos no painel do Connex Insights refletem o estado real da plataforma em até 3 segundos após o carregamento da tela.
 
 ## Assumptions
 
 - O CRM se conecta diretamente ao ambiente (Supabase) da Connex Insights, usando credenciais de servidor próprias do CRM, para ler indicadores/tenants e para provisionar o novo usuário — não é necessário construir uma nova API pública na Connex Insights para esta feature.
-- A entrega da senha temporária ao usuário final ocorre fora do sistema (o admin copia/comunica manualmente); não há envio automático de e-mail/SMS nesta feature.
+- A entrega da senha temporária ao usuário final ocorre fora do sistema (o usuário que criou o acesso copia/comunica manualmente); não há envio automático de e-mail/SMS nesta feature.
 - A lista de tenants exibida no formulário é lida diretamente da base da Connex Insights (não é uma lista fixa no código do CRM); os tenants atualmente existentes são "Zeh Motoca" e "ICON Fitbrands".
-- O papel `Admin`, já existente no modelo de usuários do CRM (`lib/types.ts`), é usado como controle de acesso a esta feature; não é necessário criar um novo papel.
+- O controle de acesso a esta feature é apenas autenticação (qualquer usuário com sessão válida no CRM, independentemente do papel `Admin`/`Gestor`/`Analista` em `lib/types.ts`); não há restrição por papel.
 - Outras aplicações/automações da Connex além do Connex Insights ainda não possuem integração definida e são apresentadas apenas como itens "em breve" no hub, sem funcionalidade nesta feature.
 - O campo "login" é um identificador de acesso distinto do e-mail de contato do usuário — **esta é uma decisão de escopo relevante, detalhada na seção "Impacto Cross-Repo" abaixo**, pois a Connex Insights hoje autentica exclusivamente por e-mail.
 

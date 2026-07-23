@@ -8,7 +8,9 @@
 
 ## Summary
 
-Criar, no `connex-crm`, um hub "Aplicações" (`/aplicacoes`) restrito a admins, com uma tela dedicada ao Connex Insights que exibe indicadores (usuários/tenants), lista usuários existentes e permite provisionar um novo acesso (nome, e-mail, login, tenant). A criação é transacional/idempotente e escreve diretamente no Supabase do Connex Insights (Service Role, sem nova API HTTP naquele repositório) via uma sequência de duas etapas com compensação: `auth.admin.createUser` seguido de `INSERT` transacional em `profiles`. Uma nova tabela de propriedade do CRM (`insights_user_provisioning_requests`), migrada via Prisma — introduzido por esta feature — garante idempotência e auditoria. A senha temporária é exibida uma única vez. O login do usuário criado usa um identificador (`login`) distinto do e-mail, o que depende de uma alteração de schema no `connex-insights` (coluna `login` em `profiles`) tratada como dependência bloqueante externa, não implementada por este plano.
+> **Atualização (2026-07-22)**: a restrição de acesso por papel `Admin` (mencionada abaixo e no restante deste documento) foi removida após a implementação inicial — ver nota equivalente em `spec.md`. O acesso passou a exigir apenas autenticação no CRM, via `lib/auth/require-auth.ts` (`checkAuth`/`requireAuthOrRedirect`), que substituiu `lib/auth/require-admin.ts`.
+
+Criar, no `connex-crm`, um hub "Aplicações" (`/aplicacoes`) restrito a usuários autenticados, com uma tela dedicada ao Connex Insights que exibe indicadores (usuários/tenants), lista usuários existentes e permite provisionar um novo acesso (nome, e-mail, login, tenant). A criação é transacional/idempotente e escreve diretamente no Supabase do Connex Insights (Service Role, sem nova API HTTP naquele repositório) via uma sequência de duas etapas com compensação: `auth.admin.createUser` seguido de `INSERT` transacional em `profiles`. Uma nova tabela de propriedade do CRM (`insights_user_provisioning_requests`), migrada via Prisma — introduzido por esta feature — garante idempotência e auditoria. A senha temporária é exibida uma única vez. O login do usuário criado usa um identificador (`login`) distinto do e-mail, o que depende de uma alteração de schema no `connex-insights` (coluna `login` em `profiles`) tratada como dependência bloqueante externa, não implementada por este plano.
 
 ## Technical Context
 
@@ -119,7 +121,7 @@ lib/
 └── constants/
     └── aplicacoes.ts
 
-middleware.ts / lib/middleware.ts           # Extensão: exigir role Admin em /aplicacoes/**
+lib/auth/require-auth.ts                    # checkAuth() / requireAuthOrRedirect() — exige apenas sessão autenticada
 ```
 
 **Structure Decision**: Segue a convenção já existente do CRM (`app/[módulo]/` co-localizado + `lib/services|repositories/`), com a única adição estrutural sendo `prisma/` na raiz — introduzido exclusivamente para a tabela `insights_user_provisioning_requests` (ver Complexity Tracking). Os dois repositories de acesso a dados ficam deliberadamente separados (`insights-provisioning.repository.ts` via Prisma vs. `connex-insights-remote.repository.ts` via `supabase-js`) para deixar explícito, no próprio código, qual banco cada um acessa.

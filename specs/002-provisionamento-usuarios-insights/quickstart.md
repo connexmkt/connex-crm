@@ -2,6 +2,10 @@
 
 **Feature**: `002-provisionamento-usuarios-insights`
 
+> **Atualização (2026-07-22)**: a restrição por papel `Admin` mencionada nos
+> pré-requisitos e no Cenário 1 abaixo foi removida — ver nota em `spec.md`.
+> Qualquer usuário autenticado no CRM pode executar os cenários a seguir.
+
 Guia de validação ponta a ponta após a implementação (`/speckit.tasks` → `/speckit.implement`). Não contém código de implementação — apenas pré-requisitos, comandos e critérios de sucesso observáveis.
 
 ## Pré-requisitos
@@ -13,7 +17,7 @@ Guia de validação ponta a ponta após a implementação (`/speckit.tasks` → 
    - `SUPABASE_INSIGHTS_URL`
    - `SUPABASE_INSIGHTS_SERVICE_ROLE_KEY`
    - `DATABASE_URL` (novo — Postgres do próprio CRM, para a tabela `insights_user_provisioning_requests` via Prisma)
-3. Usuário de teste no CRM com `profiles.role = 'Admin'`.
+3. Qualquer usuário de teste autenticado no CRM (não há mais restrição por `profiles.role`).
 4. Ao menos dois tenants existentes no Connex Insights (ex.: "Zeh Motoca", "ICON Fitbrands").
 
 ## Setup
@@ -28,14 +32,14 @@ Validar o schema resultante com o MCP `supabase` (projeto do próprio CRM):
 - `list_tables` → confirmar `insights_user_provisioning_requests` com as colunas de `data-model.md`.
 - Confirmar RLS habilitado (`rowsecurity = true`) e as policies descritas em `data-model.md`.
 
-## Cenário 1 — Hub de Aplicações e acesso restrito
+## Cenário 1 — Hub de Aplicações e acesso restrito à autenticação
 
-1. Login no CRM como usuário com `role = 'Gestor'` → acessar `/aplicacoes` → **esperado**: acesso negado.
-2. Login como `role = 'Admin'` → a partir de qualquer página do CRM, contar os cliques até chegar à tela do Connex Insights (`/aplicacoes` → card "Connex Insights") → **esperado (SC-001)**: no máximo 2 cliques; card "Connex Insights" clicável, demais cards "Em breve".
+1. Sem sessão (deslogado) → acessar `/aplicacoes` → **esperado**: redirecionado para `/auth/login`.
+2. Login com qualquer usuário do CRM (`Admin`, `Gestor` ou `Analista`) → a partir de qualquer página do CRM, contar os cliques até chegar à tela do Connex Insights (`/aplicacoes` → card "Connex Insights") → **esperado (SC-001)**: no máximo 2 cliques; card "Connex Insights" clicável, demais cards "Em breve".
 
 ## Cenário 2 — Painel do Connex Insights
 
-1. Como Admin, abrir `/aplicacoes/connex-insights`.
+1. Autenticado com qualquer usuário do CRM, abrir `/aplicacoes/connex-insights`.
 2. **Esperado**: indicadores de "Usuários" e "Tenants" carregam com valores reais (comparar com contagem manual via MCP `supabase-insights`: `select count(*) from profiles;` e `select count(*) from tenants;`).
 
 ## Cenário 3 — Criação de usuário (caminho feliz)

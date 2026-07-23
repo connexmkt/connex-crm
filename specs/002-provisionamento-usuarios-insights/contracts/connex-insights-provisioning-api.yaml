@@ -3,10 +3,10 @@ info:
   title: Connex CRM — Provisionamento de Usuários do Connex Insights
   version: 1.0.0
   description: |
-    Endpoints administrativos (papel Admin do CRM) para o hub /aplicacoes/connex-insights:
-    indicadores agregados, listagem de tenants/usuários e criação de novos acessos.
-    Toda comunicação com o Connex Insights ocorre em contexto de servidor (Service Role);
-    nenhuma credencial do Insights é exposta ao cliente.
+    Endpoints para qualquer usuário autenticado do CRM (sem restrição de papel) no hub
+    /aplicacoes/connex-insights: indicadores agregados, listagem de tenants/usuários e
+    criação de novos acessos. Toda comunicação com o Connex Insights ocorre em contexto
+    de servidor (Service Role); nenhuma credencial do Insights é exposta ao cliente.
 
 servers:
   - url: /api/aplicacoes/connex-insights
@@ -29,8 +29,6 @@ paths:
                 $ref: '#/components/schemas/DashboardResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '502':
           description: Connex Insights indisponível
           content:
@@ -54,8 +52,6 @@ paths:
                 $ref: '#/components/schemas/TenantListResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '502':
           description: Connex Insights indisponível
           content:
@@ -86,8 +82,6 @@ paths:
                 $ref: '#/components/schemas/UserListResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '502':
           description: Connex Insights indisponível
           content:
@@ -127,8 +121,6 @@ paths:
                 $ref: '#/components/schemas/ValidationErrorResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '404':
           description: Tenant informado não existe no Connex Insights
           content:
@@ -154,16 +146,11 @@ components:
       type: apiKey
       in: cookie
       name: sb-access-token
-      description: Sessão Supabase do connex-crm (cookie httpOnly via @supabase/ssr); exige role Admin.
+      description: Sessão Supabase do connex-crm (cookie httpOnly via @supabase/ssr); qualquer usuário autenticado, sem restrição de papel.
 
   responses:
     Unauthorized:
       description: Sem sessão autenticada no CRM
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
-    Forbidden:
-      description: Autenticado, mas papel diferente de Admin
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ErrorResponse' }

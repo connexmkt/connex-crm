@@ -3,6 +3,15 @@
 **Feature**: `002-provisionamento-usuarios-insights`
 **Data**: 2026-07-22
 
+> **Atualização (2026-07-22)**: a restrição por papel `Admin` descrita neste
+> documento (diagrama, RLS de `insights_user_provisioning_requests` e tabela
+> de mensagens de erro 403) foi removida — ver nota em `spec.md`. Qualquer
+> usuário autenticado no CRM aciona o fluxo; a policy de RLS do
+> `audit_log` foi atualizada na migration
+> `supabase/migrations/20260722210000_audit_log_allow_any_authenticated_insert.sql`
+> para permitir INSERT de qualquer usuário autenticado (restrito a
+> `actor_profile_id = auth.uid()`, nunca em nome de terceiros).
+
 ## Visão Geral
 
 ```mermaid
@@ -19,7 +28,7 @@ flowchart TB
         insightsTenants[tenants]
     end
 
-    crmProfiles -- "role = Admin autoriza" --> provisioning
+    crmProfiles -- "sessão autenticada autoriza" --> provisioning
     provisioning -- "auditoria de sucesso" --> auditLog
     provisioning -- "referencia insightsProfileId" --> insightsProfiles
     insightsProfiles -- "N:1" --> insightsTenants
@@ -76,8 +85,8 @@ PENDING --(erro de rede/infra/DB)--> FAILED_ERROR
 Não há transição de saída de `SUCCEEDED`, `FAILED_DUPLICATE` ou `FAILED_ERROR` — o registro é imutável a partir daí (apenas novas requisições são criadas para novas tentativas, mesmo que o e-mail/login tenha sido corrigido).
 
 **RLS** (habilitado por exigência da Constituição do CRM, Princípio X):
-- SELECT: `requestedByProfileId = auth.uid()` OR papel do usuário autenticado (join com `profiles` do CRM) = `Admin`.
-- INSERT: somente quando papel do usuário autenticado = `Admin`.
+- SELECT: `requestedByProfileId = auth.uid()` (qualquer usuário autenticado vê apenas as próprias requisições).
+- INSERT: qualquer usuário autenticado no CRM (sem restrição de papel).
 - UPDATE: somente via Service Role (transições de status são feitas pelo próprio Route Handler, nunca pelo cliente) — nenhuma policy de UPDATE para `authenticated`.
 - DELETE: proibido para todos os papéis (tabela append-only, mesma filosofia do `audit_log` da Constituição).
 
@@ -85,8 +94,9 @@ Não há transição de saída de `SUCCEEDED`, `FAILED_DUPLICATE` ou `FAILED_ERR
 > aplicação (ex.: chave de serviço vazada, acesso via Supabase Studio, `supabase-js`
 > com JWT de usuário). As queries do próprio Route Handler via Prisma Client usam um
 > papel Postgres privilegiado (necessário para `prisma migrate`) e **não são filtradas
-> por estas policies** — a autorização de aplicação (`role === 'Admin'`, `tasks.md` T015)
-> é a linha de defesa primária para esses acessos. Ver `research.md` § D8.
+> por estas policies** — a autorização de aplicação (sessão autenticada via
+> `lib/auth/require-auth.ts`) é a linha de defesa primária para esses acessos. Ver
+> `research.md` § D8.
 
 **Prisma (ilustrativo — detalhes finais na fase de tasks/implementação)**:
 
@@ -159,7 +169,6 @@ Tabela de referência para o texto exibido ao admin em cada cenário de falha (F
 |---|---|---|
 | `400` | Payload inválido (Zod) | "Verifique os campos destacados e tente novamente." + erros inline por campo |
 | `401` | Sessão ausente/expirada | "Sua sessão expirou. Faça login novamente." |
-| `403` | Usuário autenticado não é `Admin` | "Você não tem permissão para criar usuários do Connex Insights." |
 | `404` | Tenant selecionado não existe mais no Connex Insights | "O tenant selecionado não foi encontrado. Atualize a lista e tente novamente." |
 | `409` | E-mail ou login já em uso (local ou remoto) | "Já existe um usuário com este e-mail ou login. Verifique os dados e tente novamente." |
 | `502` | Falha de comunicação com o Connex Insights | "Não foi possível concluir a criação no momento. Tente novamente em instantes." |

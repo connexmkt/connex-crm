@@ -1,20 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getUserMock, singleMock } = vi.hoisted(() => ({
+const { getUserMock } = vi.hoisted(() => ({
   getUserMock: vi.fn(),
-  singleMock: vi.fn(),
 }));
 
 vi.mock("@/lib/server", () => ({
   createClient: vi.fn(async () => ({
     auth: { getUser: getUserMock },
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          single: singleMock,
-        }),
-      }),
-    }),
   })),
 }));
 
@@ -35,8 +27,7 @@ import { ConnexInsightsRemoteRepository } from "@/lib/repositories/connex-insigh
 describe("GET /api/aplicacoes/connex-insights/dashboard — indisponibilidade", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getUserMock.mockResolvedValue({ data: { user: { id: "admin-1" } } });
-    singleMock.mockResolvedValue({ data: { role: "Admin" }, error: null });
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } } });
   });
 
   it("retorna 502 sem quebrar quando o Connex Insights está indisponível", async () => {

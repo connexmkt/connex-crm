@@ -54,9 +54,11 @@ Este documento resolve as incertezas técnicas ([NEEDS CLARIFICATION]) do Techni
 
 **Decision**: Reaproveitar a sessão Supabase já usada pelo CRM (`@supabase/ssr`, cookie httpOnly) — mesma abordagem de `app/api/auth/me/route.ts`. O Route Handler:
 1. `supabase.auth.getUser()` → 401 se ausente (padrão de `unauthorized()` já existente em `lib/api/response.ts`).
-2. Busca `profiles.role` do usuário autenticado **no Supabase do próprio CRM** → 403 (`forbidden()`) se `role !== 'Admin'`.
+2. Nenhuma checagem adicional de papel (`profiles.role`) — qualquer usuário com sessão válida está autorizado.
 
-**Rationale**: Reutiliza 100% da infraestrutura de auth já validada no CRM; nenhuma credencial nova é exposta ao cliente. Autorização por papel já é um conceito existente (`lib/types.ts`).
+> **Atualização (2026-07-22)**: o passo 2 original checava `profiles.role !== 'Admin'` → `403`. Removido a pedido do usuário; ver nota em `spec.md`. `lib/auth/require-admin.ts` (`checkAdmin`/`requireAdminOrRedirect`) foi substituído por `lib/auth/require-auth.ts` (`checkAuth`/`requireAuthOrRedirect`), que não consulta mais `profiles.role`.
+
+**Rationale**: Reutiliza 100% da infraestrutura de auth já validada no CRM; nenhuma credencial nova é exposta ao cliente.
 
 ---
 
@@ -108,12 +110,19 @@ Supabase aplica a conexões autenticadas via PostgREST/`supabase-js` (papel `aut
 **Decision**: A RLS de `insights_user_provisioning_requests` (ver [data-model.md](./data-model.md))
 é uma camada de defesa contra acesso **fora da aplicação** (ex.: chave de serviço vazada,
 acesso via Supabase Studio, `supabase-js` com JWT de usuário). A autorização das queries
-feitas pela própria aplicação via Prisma é garantida exclusivamente pelo check de
-`role === 'Admin'` no Route Handler (ver `tasks.md` T015), não pela RLS. Isso é uma exceção
+feitas pela própria aplicação via Prisma é garantida exclusivamente pelo check de sessão
+autenticada no Route Handler (`lib/auth/require-auth.ts`), não pela RLS. Isso é uma exceção
 documentada ao Princípio X da Constituição ("não confiar apenas em validação na aplicação"),
 aceitável neste caso porque: (a) o único caminho de escrita/leitura desta tabela é o próprio
 Route Handler, nunca um client autenticado direto; (b) o volume/criticidade é baixo
 (ferramenta administrativa interna, poucas dezenas de operações/dia).
+
+> **Atualização (2026-07-22)**: o check de aplicação era originalmente `role === 'Admin'`
+> (`tasks.md` T015); removido a pedido do usuário — ver nota em `spec.md`. As policies de
+> RLS desta tabela (que já eram apenas defesa em profundidade, não o enforcement primário)
+> foram atualizadas na mesma data via migration
+> `prisma/migrations/20260722211500_insights_provisioning_allow_any_authenticated/migration.sql`
+> para exigir somente `requested_by_profile_id = auth.uid()`, em vez de papel `Admin`.
 
 **Rationale**: A alternativa de fazer o Prisma respeitar RLS (`SET LOCAL ROLE authenticated`
 por request, via transação dedicada) foi avaliada e rejeitada por complexidade

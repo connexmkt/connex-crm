@@ -1,4 +1,4 @@
-import { requireAdminOrRedirect } from "@/lib/auth/require-admin";
+import { requireAuthOrRedirect } from "@/lib/auth/require-auth";
 import { AppShell } from "@/components/layout";
 import { createConnexInsightsAdminClient } from "@/lib/integrations/connex-insights/admin-client";
 import { ConnexInsightsRemoteRepository } from "@/lib/repositories/connex-insights-remote.repository";
@@ -9,8 +9,7 @@ const PAGE_SIZE = 20;
 const EMPTY_USERS_PAGE: UsersPage = { items: [], total: 0, page: 1, limit: PAGE_SIZE };
 
 export default async function ConnexInsightsAplicacaoPage() {
-  // FR-004 / SEC-002: somente Admin acessa esta página.
-  await requireAdminOrRedirect();
+  await requireAuthOrRedirect();
 
   try {
     const admin = createConnexInsightsAdminClient();

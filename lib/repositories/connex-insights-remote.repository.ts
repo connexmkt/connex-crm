@@ -56,7 +56,15 @@ export const ConnexInsightsRemoteRepository = {
 
     const { data, error } = await admin
       .from("tenants")
-      .upsert({ id: input.id, name: input.name, slug }, { onConflict: "id" })
+      .upsert(
+        {
+          id: input.id,
+          name: input.name,
+          slug,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" },
+      )
       .select("id, name")
       .single();
 
@@ -72,9 +80,12 @@ export const ConnexInsightsRemoteRepository = {
     const from = (page - 1) * pageSize;
     const { data, error, count } = await admin
       .from("profiles")
-      .select("id, display_name, role, status, tenant_id, created_at, tenants(name)", {
-        count: "exact",
-      })
+      .select(
+        "id, display_name, role, status, tenant_id, created_at, tenants(name)",
+        {
+          count: "exact",
+        },
+      )
       .order("created_at", { ascending: false })
       .range(from, from + pageSize - 1);
 
@@ -145,6 +156,7 @@ export const ConnexInsightsRemoteRepository = {
         login: input.login,
         role: "MEMBER",
         status: "INACTIVE",
+        updated_at: new Date().toISOString(),
       })
       .select("id")
       .single();
@@ -153,9 +165,10 @@ export const ConnexInsightsRemoteRepository = {
     return { profileId: (data as { id: string }).id };
   },
 
-  /** Compensação (research.md § D2, passo 3): remove o Auth user "fantasma"
-   * quando o INSERT em `profiles` falha. */
-  async deleteAuthUser(admin: SupabaseClient, authUserId: string): Promise<void> {
+  async deleteAuthUser(
+    admin: SupabaseClient,
+    authUserId: string,
+  ): Promise<void> {
     const { error } = await admin.auth.admin.deleteUser(authUserId);
     if (error) throw error;
   },

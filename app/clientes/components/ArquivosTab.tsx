@@ -30,7 +30,7 @@ import {
   Download,
   Trash2,
 } from "lucide-react";
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useId, useCallback, useEffect, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +39,7 @@ import { Select } from "@/components/ui/select";
 
 export default function ArquivosTab({ clienteId }: { clienteId: string }) {
   const [arquivos, setArquivos] = useState<ClientArquivo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, startLoadingTransition] = useTransition();
   const [isUploading, setIsUploading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ClientArquivo | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -49,20 +49,19 @@ export default function ArquivosTab({ clienteId }: { clienteId: string }) {
   const [uploadType, setUploadType] = useState<ClientArquivoType>("outro");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const uploadInputId = useRef(`upload-${clienteId}`);
+  const uploadInputId = useId();
 
-  const fetchArquivos = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/clientes/${clienteId}/arquivos`);
-      if (!res.ok) throw new Error();
-      const json = await res.json();
-      setArquivos(json.data ?? []);
-    } catch {
-      toast.error("Falha ao carregar arquivos");
-    } finally {
-      setIsLoading(false);
-    }
+  const fetchArquivos = useCallback(() => {
+    startLoadingTransition(async () => {
+      try {
+        const res = await fetch(`/api/clientes/${clienteId}/arquivos`);
+        if (!res.ok) throw new Error();
+        const json = await res.json();
+        setArquivos(json.data ?? []);
+      } catch {
+        toast.error("Falha ao carregar arquivos");
+      }
+    });
   }, [clienteId]);
 
   useEffect(() => {
@@ -261,7 +260,7 @@ export default function ArquivosTab({ clienteId }: { clienteId: string }) {
                 Arquivo
               </p>
               <label
-                htmlFor={uploadInputId.current}
+                htmlFor={uploadInputId}
                 className={cn(
                   "flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-5 transition-colors",
                   isDragging
@@ -313,7 +312,7 @@ export default function ArquivosTab({ clienteId }: { clienteId: string }) {
                 )}
               </label>
               <input
-                id={uploadInputId.current}
+                id={uploadInputId}
                 type="file"
                 className="sr-only"
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp"

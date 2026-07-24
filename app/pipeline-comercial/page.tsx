@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AppShell } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import type { PipelineLead, PipelineStage } from "@/lib/types";
+import type { LeadInteraction, LeadInteractionKind, PipelineLead, PipelineStage } from "@/lib/types";
 
 import {
   DndContext,
@@ -192,23 +192,28 @@ function LeadDetailDrawer({
 }) {
   const config = stageConfig[lead.stage];
   const tempConfig = TEMPERATURE_CONFIG[lead.temperature] ?? TEMPERATURE_CONFIG.morno;
-  const [interactions, setInteractions] = useState<any[]>([]);
-  const [loadingInteractions, setLoadingInteractions] = useState(false);
-  const [newInteraction, setNewInteraction] = useState({
-    kind: "whatsapp" as any,
+  const [interactions, setInteractions] = useState<LeadInteraction[]>([]);
+  const [loadingInteractions, startLoadingInteractionsTransition] = useTransition();
+  const [newInteraction, setNewInteraction] = useState<{
+    kind: LeadInteractionKind;
+    description: string;
+  }>({
+    kind: "whatsapp",
     description: "",
   });
   const [submittingInteraction, setSubmittingInteraction] = useState(false);
 
   useEffect(() => {
-    if (lead.id) {
-      setLoadingInteractions(true);
-      fetch(`/api/pipeline/${lead.id}/interactions`)
-        .then((r) => r.json())
-        .then((json) => setInteractions(json.data || []))
-        .catch((err) => console.error("Erro ao carregar interações", err))
-        .finally(() => setLoadingInteractions(false));
-    }
+    if (!lead.id) return;
+    startLoadingInteractionsTransition(async () => {
+      try {
+        const res = await fetch(`/api/pipeline/${lead.id}/interactions`);
+        const json = await res.json();
+        setInteractions(json.data || []);
+      } catch (err) {
+        console.error("Erro ao carregar interações", err);
+      }
+    });
   }, [lead.id]);
 
   async function handleAddInteraction(e: React.FormEvent) {
@@ -372,7 +377,10 @@ function LeadDetailDrawer({
               <Select
                 value={newInteraction.kind}
                 onValueChange={(v) =>
-                  setNewInteraction((prev) => ({ ...prev, kind: v }))
+                  setNewInteraction((prev) => ({
+                    ...prev,
+                    kind: v as LeadInteractionKind,
+                  }))
                 }
               >
                 <SelectTrigger className="h-8 w-[120px] text-xs">

@@ -5,7 +5,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogTitle, AlertDialogDescripti
 import { motion } from "framer-motion";
 import { Plus, Loader2, Users, Mail, MessageSquare, Edit2, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ContatoFormDialog from "./ContatoFormDialog";
@@ -14,24 +14,23 @@ import { contatoChannelLabels } from "../constants/contato-labels";
 
 export default function ContatosTab({ clienteId }: { clienteId: string }) {
   const [contatos, setContatos] = useState<ClientContato[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, startLoadingTransition] = useTransition();
   const [formOpen, setFormOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ClientContato | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ClientContato | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchContatos = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/clientes/${clienteId}/contatos`);
-      if (!res.ok) throw new Error();
-      const json = await res.json();
-      setContatos(json.data ?? []);
-    } catch {
-      toast.error("Falha ao carregar contatos");
-    } finally {
-      setIsLoading(false);
-    }
+  const fetchContatos = useCallback(() => {
+    startLoadingTransition(async () => {
+      try {
+        const res = await fetch(`/api/clientes/${clienteId}/contatos`);
+        if (!res.ok) throw new Error();
+        const json = await res.json();
+        setContatos(json.data ?? []);
+      } catch {
+        toast.error("Falha ao carregar contatos");
+      }
+    });
   }, [clienteId]);
 
   useEffect(() => {

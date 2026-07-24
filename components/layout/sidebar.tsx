@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/tooltip";
 
 import type { User } from "@/lib/types";
+import packageJson from "@/package.json";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
@@ -218,6 +219,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                       </p>
                       <p className="truncate text-xs text-sidebar-text">
                         {currentUser.role}
+                      </p>
+                      <p className="truncate text-[10px] text-sidebar-text/60">
+                        Versão {packageJson.version}
                       </p>
                     </div>
                   ) : (

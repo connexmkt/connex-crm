@@ -83,26 +83,6 @@ export interface ClientArquivo {
   signedUrl?: string;
 }
 
-export interface Lead {
-  id: string;
-  companyName: string;
-  contactName: string;
-  contactAvatar: string;
-  contractValue: number;
-  daysInStage: number;
-  responsible: User;
-  priority: "high" | "medium" | "low";
-  stage: FunnelStage;
-  notes?: string;
-}
-
-export type FunnelStage =
-  | "atracao"
-  | "retencao"
-  | "adesao"
-  | "recompra"
-  | "indicacao";
-
 export type PipelineStage =
   | "novo_lead"
   | "em_contato"
@@ -166,30 +146,6 @@ export interface PipelineLead {
   updatedAt: Date;
 }
 
-export interface Campaign {
-  id: string;
-  name: string;
-  client: Client;
-  status: "Ativa" | "Pausada" | "Concluída" | "Rascunho";
-  platforms: ("Meta Ads" | "Google Ads" | "Instagram" | "LinkedIn")[];
-  budget: {
-    spent: number;
-    total: number;
-  };
-  metrics: {
-    impressions: number;
-    clicks: number;
-    ctr: number;
-    conversions: number;
-  };
-  responsible: User;
-  startDate: Date;
-  endDate: Date;
-  objective: string;
-  targetAudience?: string;
-  thesis?: string;
-}
-
 export interface ContentItem {
   id: string;
   client: Client;
@@ -226,16 +182,6 @@ export interface Atividade {
   proximoPasso?: string;
   ownerId: string;
   createdAt: Date;
-}
-
-/** @deprecated Use Atividade — mantido para retrocompatibilidade */
-export interface Activity {
-  id: string;
-  type: "novo_lead" | "reuniao" | "contrato" | "campanha";
-  description: string;
-  timestamp: Date;
-  user: User;
-  client?: Client;
 }
 
 export interface Task {

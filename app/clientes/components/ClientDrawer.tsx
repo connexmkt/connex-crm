@@ -1,14 +1,14 @@
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Activity, Campaign, Client } from "@/lib/types";
+import { Client } from "@/lib/types";
 import { CLIENTE_SOURCES_OPTIONS, CLIENTE_SERVICOS_OPTIONS } from "@/lib/constants/clientes";
 
 import ArquivosTab from "./ArquivosTab";
 import ContatosTab from "./ContatosTab";
+import HistoricoTab from "./HistoricoTab";
 import StatusBadge from "./StatusBadge";
 import NotasInternasSection from "./NotasInternasSection";
 
@@ -32,13 +32,6 @@ export default function ClientDrawer({
   onClose: () => void;
   onClientUpdate?: (updated: Client) => void;
 }) {
-  const allActivities: Activity[] = [];
-  const allCampaigns: Campaign[] = [];
-  const clientActivities = allActivities.filter(
-    (a) => a.client?.id === client.id,
-  );
-  const clientCampaigns = allCampaigns.filter((c) => c.client.id === client.id);
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <motion.div
@@ -99,7 +92,6 @@ export default function ClientDrawer({
               { value: "contatos", label: "Contatos" },
               { value: "arquivos", label: "Arquivos" },
               { value: "historico", label: "Histórico" },
-              { value: "campanhas", label: "Campanhas" },
             ].map((tab) => (
               <TabsTrigger
                 key={tab.value}
@@ -287,87 +279,7 @@ export default function ClientDrawer({
 
           {/* Histórico */}
           <TabsContent value="historico" className="mt-0">
-            {clientActivities.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                Nenhuma atividade registrada
-              </p>
-            ) : (
-              <div className="relative space-y-4 pl-4 before:absolute before:left-1.5 before:top-2 before:h-[calc(100%-16px)] before:w-px before:bg-border">
-                {clientActivities.map((activity) => (
-                  <div key={activity.id} className="relative flex gap-3">
-                    <div className="absolute -left-[13px] top-1 h-2.5 w-2.5 rounded-full border-2 border-primary bg-card" />
-                    <div>
-                      <p className="text-sm text-foreground">
-                        {activity.description}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {new Date(activity.timestamp).toLocaleDateString(
-                          "pt-BR",
-                          {
-                            day: "2-digit",
-                            month: "short",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          },
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Campanhas */}
-          <TabsContent value="campanhas" className="mt-0 space-y-3">
-            {clientCampaigns.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                Nenhuma campanha vinculada
-              </p>
-            ) : (
-              clientCampaigns.map((campaign) => (
-                <div
-                  key={campaign.id}
-                  className="rounded-lg border border-border bg-secondary/30 p-3"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        {campaign.name}
-                      </p>
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {campaign.platforms.map((p) => (
-                          <Badge
-                            key={p}
-                            variant="secondary"
-                            className="px-1 text-[10px]"
-                          >
-                            {p}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "text-xs",
-                        campaign.status === "Ativa"
-                          ? "bg-success/10 text-success border-success/20"
-                          : campaign.status === "Pausada"
-                            ? "bg-warning/10 text-warning border-warning/20"
-                            : "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {campaign.status}
-                    </Badge>
-                  </div>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    R$ {campaign.budget.spent.toLocaleString("pt-BR")} / R${" "}
-                    {campaign.budget.total.toLocaleString("pt-BR")}
-                  </div>
-                </div>
-              ))
-            )}
+            <HistoricoTab clienteId={client.id} />
           </TabsContent>
         </div>
       </Tabs>

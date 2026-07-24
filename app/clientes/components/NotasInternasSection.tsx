@@ -1,7 +1,7 @@
 import { Textarea } from "@/components/ui/textarea";
 import { Client } from "@/lib/types";
 import { StickyNote, Edit2, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -16,9 +16,15 @@ export default function NotasInternasSection({
   const [notes, setNotes] = useState(client.internalNotes ?? "");
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
+  // Ajusta o estado durante o render (em vez de um Effect) quando o cliente
+  // muda: evita um ciclo extra de renderização causado por setState no Effect.
+  const [prevInternalNotes, setPrevInternalNotes] = useState(
+    client.internalNotes,
+  );
+  if (client.internalNotes !== prevInternalNotes) {
+    setPrevInternalNotes(client.internalNotes);
     setNotes(client.internalNotes ?? "");
-  }, [client.internalNotes]);
+  }
 
   const handleSave = async () => {
     setIsSaving(true);

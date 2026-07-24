@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import { motion } from "framer-motion";
 import { ptBR } from "date-fns/locale";
 import { AppShell } from "@/components/layout";
@@ -98,7 +98,7 @@ export default function ConteudoPage() {
   const [items, setItems] = useState<ConteudoItem[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [team, setTeam] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, startLoadingTransition] = useTransition();
   const [saving, setSaving] = useState(false);
 
   const [selectedItem, setSelectedItem] = useState<ConteudoItem | null>(null);
@@ -116,22 +116,21 @@ export default function ConteudoPage() {
   const [formStatus, setFormStatus] = useState<ContentItem["status"]>("Rascunho");
   const [formResponsibleId, setFormResponsibleId] = useState("");
 
-  const fetchItems = useCallback(async () => {
-    setLoading(true);
-    try {
-      const monthStart = startOfMonth(currentDate);
-      const monthEnd = endOfMonth(currentDate);
-      const from = format(monthStart, "yyyy-MM-dd");
-      const to = format(monthEnd, "yyyy-MM-dd");
-      const res = await fetch(`/api/conteudo?from=${from}&to=${to}&limit=200`);
-      if (!res.ok) throw new Error();
-      const json = await res.json();
-      setItems(json.data ?? []);
-    } catch {
-      toast.error("Erro ao carregar o calendário editorial");
-    } finally {
-      setLoading(false);
-    }
+  const fetchItems = useCallback(() => {
+    startLoadingTransition(async () => {
+      try {
+        const monthStart = startOfMonth(currentDate);
+        const monthEnd = endOfMonth(currentDate);
+        const from = format(monthStart, "yyyy-MM-dd");
+        const to = format(monthEnd, "yyyy-MM-dd");
+        const res = await fetch(`/api/conteudo?from=${from}&to=${to}&limit=200`);
+        if (!res.ok) throw new Error();
+        const json = await res.json();
+        setItems(json.data ?? []);
+      } catch {
+        toast.error("Erro ao carregar o calendário editorial");
+      }
+    });
   }, [currentDate]);
 
   useEffect(() => {

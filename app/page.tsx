@@ -233,6 +233,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [atividades, setAtividades] = useState<Atividade[]>([]);
+  // Inicializador preguiçoso: `Date.now()` só é chamado uma vez, evitando
+  // uma chamada impura durante o render (react-hooks/purity).
+  const [now] = useState(() => Date.now());
 
   useEffect(() => {
     fetch("/api/dashboard")
@@ -644,7 +647,7 @@ export default function DashboardPage() {
                 <div className="space-y-3">
                   {atRiskClients.map((client) => {
                     const daysSince = Math.floor(
-                      (Date.now() - new Date(client.lastActivity).getTime()) /
+                      (now - new Date(client.lastActivity).getTime()) /
                         86_400_000,
                     );
                     return (

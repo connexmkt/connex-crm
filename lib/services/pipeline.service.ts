@@ -207,7 +207,7 @@ export const PipelineService = {
           contractValue: lead.estimatedValue,
           responsibleId: lead.responsible.id,
           segment: "A definir",
-          source: lead.source as any, // Cast to any because LeadSource is a subset of ClienteSource
+          source: lead.source, // LeadSource e ClienteSource compartilham os mesmos valores
           sourceReferrer: lead.sourceReferrer,
           servicos: [],
           contact: {

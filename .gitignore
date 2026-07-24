@@ -25,6 +25,7 @@ yarn.lock
 
 # IDE
 .cursor/
+.claude/
 
 # Env files
 .env

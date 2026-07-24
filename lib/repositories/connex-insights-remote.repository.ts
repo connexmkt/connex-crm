@@ -26,6 +26,22 @@ interface ProfileWithTenantRow {
   tenants: { name: string } | null;
 }
 
+/** Espelha o enum `UserStatus` do Prisma do connex-insights (não migrado
+ * neste repositório — ver cabeçalho de `prisma/schema.prisma`). */
+export type ConnexInsightsUserStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED";
+
+/** Chave correta do `app_metadata` esperada pelo middleware do Connex
+ * Insights — ver `PROFILE_STATUS_METADATA_KEY` em
+ * `connex-insights/lib/auth/profile-metadata.ts`. */
+const PROFILE_STATUS_METADATA_KEY = "profile_status";
+
+export interface ConnexInsightsUserDetail {
+  id: string;
+  displayName: string;
+  status: ConnexInsightsUserStatus;
+  tenantId: string;
+}
+
 /**
  * Repository de acesso ao Supabase do Connex Insights (Service Role,
  * `@supabase/supabase-js`) — nunca migrado pelo connex-crm. Ver
@@ -171,5 +187,88 @@ export const ConnexInsightsRemoteRepository = {
   ): Promise<void> {
     const { error } = await admin.auth.admin.deleteUser(authUserId);
     if (error) throw error;
+  },
+
+  /**
+   * Busca um usuário do Connex Insights por `id` para validar existência e
+   * status atual antes de inativar/reativar/resetar senha. Retorna `null`
+   * se não encontrado (mapeado pelo service para 404).
+   */
+  async getUserById(
+    admin: SupabaseClient,
+    userId: string,
+  ): Promise<ConnexInsightsUserDetail | null> {
+    const { data, error } = await admin
+      .from("profiles")
+      .select("id, display_name, status, tenant_id")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return null;
+
+    const row = data as {
+      id: string;
+      display_name: string;
+      status: string;
+      tenant_id: string;
+    };
+
+    return {
+      id: row.id,
+      displayName: row.display_name,
+      status: row.status as ConnexInsightsUserStatus,
+      tenantId: row.tenant_id,
+    };
+  },
+
+  /**
+   * Atualiza o status do usuário em 2 escritas sequenciais: Auth
+   * (`app_metadata.profile_status`, efeito imediato no middleware — ver
+   * `lib/supabase/middleware.ts` do connex-insights) e depois `profiles.status`
+   * (DB). Se a 2ª falhar após a 1ª ter sucesso, o acesso já está
+   * corretamente bloqueado/liberado (falha segura); o erro deve ser
+   * reportado pelo chamador como `FAILED_ERROR` — a ação é idempotente e
+   * permite nova tentativa.
+   */
+  async setUserStatus(
+    admin: SupabaseClient,
+    userId: string,
+    status: ConnexInsightsUserStatus,
+  ): Promise<void> {
+    const { error: authError } = await admin.auth.admin.updateUserById(userId, {
+      app_metadata: { [PROFILE_STATUS_METADATA_KEY]: status },
+    });
+    if (authError) throw authError;
+
+    const { error: dbError } = await admin
+      .from("profiles")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", userId);
+    if (dbError) throw dbError;
+  },
+
+  /**
+   * Reseta a senha do usuário e força o fluxo `/ativar-conta` (troca de
+   * senha obrigatória), reaproveitando o mesmo caminho usado na criação de
+   * usuário: uma única chamada ao Auth (senha + `app_metadata.profile_status`)
+   * seguida do `UPDATE profiles.status`.
+   */
+  async resetUserPassword(
+    admin: SupabaseClient,
+    userId: string,
+    newPassword: string,
+  ): Promise<void> {
+    const { error: authError } = await admin.auth.admin.updateUserById(userId, {
+      password: newPassword,
+      app_metadata: { [PROFILE_STATUS_METADATA_KEY]: "INACTIVE" },
+    });
+    if (authError) throw authError;
+
+    const { error: dbError } = await admin
+      .from("profiles")
+      .update({ status: "INACTIVE", updated_at: new Date().toISOString() })
+      .eq("id", userId);
+    if (dbError) throw dbError;
   },
 };

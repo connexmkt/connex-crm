@@ -49,3 +49,34 @@ model InsightsUserProvisioningRequest {
   @@index([insightsTenantId, createdAt(sort: Desc)])
   @@map("insights_user_provisioning_requests")
 }
+
+enum InsightsUserActionType {
+  DEACTIVATE
+  REACTIVATE
+  RESET_PASSWORD
+}
+
+enum InsightsUserActionStatus {
+  PENDING
+  SUCCEEDED
+  FAILED_ERROR
+}
+
+/// Registro de cada ação de gerenciamento (inativar/reativar/resetar senha)
+/// executada sobre um usuário do Connex Insights via CRM — auditoria
+/// append-only, mesmo padrão de `InsightsUserProvisioningRequest`.
+model InsightsUserManagementAction {
+  id                      String                   @id @default(uuid()) @db.Uuid
+  requestedByProfileId    String                   @map("requested_by_profile_id") @db.Uuid
+  insightsUserId          String                   @map("insights_user_id") @db.Uuid
+  actionType              InsightsUserActionType   @map("action_type")
+  status                  InsightsUserActionStatus @default(PENDING)
+  previousStatus          String?                  @map("previous_status")
+  temporaryPasswordIssued Boolean                  @default(false) @map("temporary_password_issued")
+  failureReason           String?                  @map("failure_reason")
+  createdAt               DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([insightsUserId, createdAt(sort: Desc)])
+  @@map("insights_user_management_actions")
+}

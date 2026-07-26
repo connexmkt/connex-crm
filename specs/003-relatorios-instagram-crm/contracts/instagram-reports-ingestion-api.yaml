@@ -1,0 +1,273 @@
+openapi: 3.1.0
+info:
+  title: Connex CRM — Ingestão de Relatórios de Instagram (Connex Insights → Connex CRM)
+  version: 1.0.0
+  description: |
+    Endpoints service-to-service usados exclusivamente pelo Connex Insights (fora do
+    escopo deste repositório — ver research.md § D2) para entregar relatórios semanais
+    e mensais de Instagram já processados. Não usam sessão de usuário do CRM; a
+    autenticação é feita por segredo compartilhado em header. O Connex CRM nunca
+    consulta a API do Instagram diretamente e não recalcula nenhuma métrica ou
+    classificação recebida aqui (FR-027).
+
+servers:
+  - url: /api/integrations/connex-insights/relatorios-instagram
+    description: Next.js Route Handlers (connex-crm)
+
+paths:
+  /semanais:
+    post:
+      operationId: ingestWeeklyInstagramReport
+      summary: Receber (criar ou atualizar de forma idempotente) um relatório semanal de Instagram
+      tags: [InstagramReportsIngestion]
+      security:
+        - sharedSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WeeklyReportIngestRequest'
+      responses:
+        '200':
+          description: Relatório já existia (mesmo sourceReportId) e foi atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+        '201':
+          description: Relatório criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+        '400':
+          description: Payload inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Segredo compartilhado ausente ou inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: clienteId não corresponde a nenhum cliente cadastrado no CRM
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Erro interno ao persistir o relatório
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /mensais:
+    post:
+      operationId: ingestMonthlyInstagramReport
+      summary: Receber (criar ou atualizar de forma idempotente) um relatório mensal de Instagram
+      tags: [InstagramReportsIngestion]
+      security:
+        - sharedSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MonthlyReportIngestRequest'
+      responses:
+        '200':
+          description: Relatório já existia (mesmo sourceReportId) e foi atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+        '201':
+          description: Relatório criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+        '400':
+          description: Payload inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Segredo compartilhado ausente ou inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: clienteId não corresponde a nenhum cliente cadastrado no CRM
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Erro interno ao persistir o relatório
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    sharedSecret:
+      type: apiKey
+      in: header
+      name: x-connex-insights-secret
+      description: Comparado, em tempo constante, a `CONNEX_INSIGHTS_INGEST_SECRET` (env var server-only do connex-crm).
+
+  schemas:
+    PostPayload:
+      type: object
+      required: [instagramMediaId]
+      properties:
+        instagramMediaId:
+          type: string
+          description: ID da postagem no Instagram (rastreabilidade).
+        permalink:
+          type: string
+          format: uri
+          nullable: true
+        thumbnailUrl:
+          type: string
+          format: uri
+          nullable: true
+        contentType:
+          type: string
+          nullable: true
+          description: Valor livre definido pelo Insights (ex. IMAGE, VIDEO, CAROUSEL, REELS).
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        primaryMetricName:
+          type: string
+          nullable: true
+        primaryMetricValue:
+          type: number
+          nullable: true
+        metrics:
+          type: object
+          additionalProperties: true
+          description: Demais métricas do Instagram (engagement, reach, impressions, likes, comments, shares, saves, views, outras).
+
+    WeeklyReportIngestRequest:
+      type: object
+      required: [sourceReportId, clienteId, referenceYear, referenceMonth, referenceWeek, periodStart, periodEnd, generatedAt, status]
+      properties:
+        sourceReportId:
+          type: string
+          description: Identificador do relatório no Connex Insights — chave de idempotência.
+        clienteId:
+          type: string
+          format: uuid
+          description: Igual ao tenantId do cliente no Connex Insights.
+        referenceYear:
+          type: integer
+          minimum: 2020
+          maximum: 2100
+        referenceMonth:
+          type: integer
+          minimum: 1
+          maximum: 12
+        referenceWeek:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Posição ordinal da semana dentro do mês, definida pelo Insights.
+        periodStart:
+          type: string
+          format: date
+        periodEnd:
+          type: string
+          format: date
+        generatedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [AVAILABLE, PARTIAL]
+        bestPost:
+          allOf: [$ref: '#/components/schemas/PostPayload']
+          nullable: true
+        worstPost:
+          allOf: [$ref: '#/components/schemas/PostPayload']
+          nullable: true
+
+    MonthlyReportIngestRequest:
+      type: object
+      required: [sourceReportId, clienteId, referenceYear, referenceMonth, generatedAt, status]
+      properties:
+        sourceReportId:
+          type: string
+        clienteId:
+          type: string
+          format: uuid
+        referenceYear:
+          type: integer
+          minimum: 2020
+          maximum: 2100
+        referenceMonth:
+          type: integer
+          minimum: 1
+          maximum: 12
+        generatedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [AVAILABLE, PARTIAL]
+        topPosts:
+          type: array
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/PostPayload'
+          description: Ordem = ranking (índice 0 é o Top 1 / "Melhor Performance do Mês").
+        worstPost:
+          allOf: [$ref: '#/components/schemas/PostPayload']
+          nullable: true
+        followersGained:
+          type: integer
+          nullable: true
+        followersStart:
+          type: integer
+          nullable: true
+        followersEnd:
+          type: integer
+          nullable: true
+        followersGrowthPct:
+          type: number
+          nullable: true
+        accountsReached:
+          type: integer
+          nullable: true
+
+    IngestResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            action:
+              type: string
+              enum: [created, updated]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          nullable: true

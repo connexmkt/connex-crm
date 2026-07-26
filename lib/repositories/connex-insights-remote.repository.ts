@@ -1,9 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { slugify } from "@/lib/utils/slugify";
+import type { InstagramIntegrationStatus } from "@/lib/constants/instagram-reports";
+import type { ConnexInsightsIntegrationSummary } from "@/lib/types/instagram-reports";
 
 export interface ConnexInsightsTenant {
   id: string;
   name: string;
+}
+
+interface InstagramIntegrationRow {
+  tenant_id: string;
+  username: string | null;
+  profile_picture_url: string | null;
+  status: string;
 }
 
 export interface ConnexInsightsUserRow {
@@ -270,5 +279,33 @@ export const ConnexInsightsRemoteRepository = {
       .update({ status: "INACTIVE", updated_at: new Date().toISOString() })
       .eq("id", userId);
     if (dbError) throw dbError;
+  },
+
+  /**
+   * Lê, em lote, `instagram_integrations` do Connex Insights para os
+   * `tenant_id` informados (= `clientes.id` no CRM — feature 002). Usado
+   * pela listagem de clientes com relatórios (research.md § D3) para evitar
+   * uma consulta remota por cliente (N+1).
+   */
+  async listIntegrationsByTenantIds(
+    admin: SupabaseClient,
+    tenantIds: string[],
+  ): Promise<ConnexInsightsIntegrationSummary[]> {
+    if (tenantIds.length === 0) return [];
+
+    const { data, error } = await admin
+      .from("instagram_integrations")
+      .select("tenant_id, username, profile_picture_url, status")
+      .in("tenant_id", tenantIds);
+
+    if (error) throw error;
+
+    const rows = (data ?? []) as InstagramIntegrationRow[];
+    return rows.map((row) => ({
+      tenantId: row.tenant_id,
+      username: row.username,
+      profilePictureUrl: row.profile_picture_url,
+      status: row.status as InstagramIntegrationStatus,
+    }));
   },
 };

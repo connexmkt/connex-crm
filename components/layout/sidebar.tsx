@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
@@ -24,22 +23,29 @@ import {
   LayoutGrid,
 } from "lucide-react";
 
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  SidebarNavItem,
+  hasActiveChild,
+  type SidebarNavItemData,
+} from "@/components/layout/sidebar-nav-item";
 
 import type { User } from "@/lib/types";
 import packageJson from "@/package.json";
 
-const navItems = [
+const navItems: SidebarNavItemData[] = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/pipeline-comercial", label: "Pipeline Comercial", icon: TrendingUp },
   { href: "/conteudo", label: "Agenda", icon: Calendar },
-  { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
+  {
+    href: "/relatorios",
+    label: "Relatórios",
+    icon: BarChart3,
+    children: [
+      { href: "/relatorios/instagram", label: "Relatórios de Instagram" },
+    ],
+  },
   { href: "/configuracoes", label: "Configurações", icon: Settings },
   { href: "/aplicacoes", label: "Aplicações", icon: LayoutGrid },
 ];
@@ -53,6 +59,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  // Guarda apenas os toggles manuais do usuário; a rota ativa continua
+  // determinando o padrão (derivado no render, sem sincronizar via efeito).
+  const [manualExpanded, setManualExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -62,6 +71,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       })
       .catch(() => null);
   }, []);
+
+  function isItemExpanded(item: SidebarNavItemData): boolean {
+    const override = manualExpanded[item.href];
+    if (override !== undefined) return override;
+    return hasActiveChild(item, pathname);
+  }
+
+  function toggleExpanded(item: SidebarNavItemData) {
+    setManualExpanded((prev) => ({ ...prev, [item.href]: !isItemExpanded(item) }));
+  }
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -124,63 +143,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 px-2 py-4">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            const Icon = item.icon;
-
-            const linkContent = (
-              <Link
-                href={item.href}
-                className={cn(
-                  "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                  isActive
-                    ? "bg-primary/20 text-sidebar-text-active"
-                    : "text-sidebar-text hover:bg-sidebar-item-hover hover:text-sidebar-text-active",
-                )}
-              >
-                {/* Active indicator */}
-                {isActive && (
-                  <motion.div
-                    layoutId="activeIndicator"
-                    className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-primary"
-                  />
-                )}
-                <Icon
-                  className={cn(
-                    "h-5 w-5 shrink-0 transition-colors",
-                    isActive
-                      ? "text-primary"
-                      : "text-sidebar-text group-hover:text-sidebar-text-active",
-                  )}
-                />
-                <AnimatePresence>
-                  {!collapsed && (
-                    <motion.span
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: "auto" }}
-                      exit={{ opacity: 0, width: 0 }}
-                      className="truncate"
-                    >
-                      {item.label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </Link>
-            );
-
-            if (collapsed) {
-              return (
-                <Tooltip key={item.href}>
-                  <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                  <TooltipContent side="right" className="font-medium">
-                    {item.label}
-                  </TooltipContent>
-                </Tooltip>
-              );
-            }
-
-            return <div key={item.href}>{linkContent}</div>;
-          })}
+          {navItems.map((item) => (
+            <SidebarNavItem
+              key={item.href}
+              item={item}
+              pathname={pathname}
+              collapsed={collapsed}
+              isExpanded={isItemExpanded(item)}
+              onToggleExpand={() => toggleExpanded(item)}
+            />
+          ))}
         </nav>
 
         {/* User section */}

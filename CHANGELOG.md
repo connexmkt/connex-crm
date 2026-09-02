@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.0.0](https://github.com/connexmkt/connex-crm/compare/v2.0.0...v3.0.0) (2026-09-02)
+
+### ⚠ BREAKING CHANGES
+
+* rotas `/relatorios/instagram`,
+  `/aplicacoes/connex-insights` e endpoints correlatos deixam de existir;
+  tabelas `instagram_*`, `audit_log` e `insights_user_*` são removidas.
+
+### Features
+
+* Remove Connex Insights do CRM ([38fa305](https://github.com/connexmkt/connex-crm/commit/38fa305b53c01b6f06a47c9d18ba7ec7cae7c220))
+
 ## [2.0.0](https://github.com/connexmkt/connex-crm/compare/v1.1.0...v2.0.0) (2026-07-26)
 
 ### ⚠ BREAKING CHANGES

@@ -1,13 +1,8 @@
 // Prisma schema do connex-crm.
 //
-// Escopo estritamente limitado: gerencia apenas a tabela
-// `insights_user_provisioning_requests` (auditoria/idempotência do
-// provisionamento de usuários do Connex Insights via CRM).
-//
-// As tabelas `tenants`/`profiles` do Connex Insights NÃO são migradas por
-// este schema — são lidas/escritas via `@supabase/supabase-js` (Service
-// Role) em `lib/repositories/connex-insights-remote.repository.ts`.
-// Ver specs/002-provisionamento-usuarios-insights/research.md § D1.
+// Sem models no momento. O acesso a dados do CRM é feito via
+// `@supabase/supabase-js`. Este schema permanece configurado para
+// eventual uso futuro do Prisma.
 
 generator client {
   provider = "prisma-client-js"
@@ -18,65 +13,4 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
-}
-
-enum ProvisioningStatus {
-  PENDING
-  SUCCEEDED
-  FAILED_DUPLICATE
-  FAILED_ERROR
-}
-
-/// Registro de cada tentativa de provisionamento de usuário para o Connex
-/// Insights — serve como guarda de idempotência (constraints únicas) e
-/// trilha de auditoria (append-only; nunca deletado).
-model InsightsUserProvisioningRequest {
-  id                         String             @id @default(uuid()) @db.Uuid
-  requestedByProfileId       String             @map("requested_by_profile_id") @db.Uuid
-  insightsTenantId           String             @map("insights_tenant_id") @db.Uuid
-  insightsTenantNameSnapshot String             @map("insights_tenant_name_snapshot")
-  name                       String
-  email                      String             @unique
-  login                      String             @unique
-  status                     ProvisioningStatus @default(PENDING)
-  insightsAuthUserId         String?            @map("insights_auth_user_id") @db.Uuid
-  insightsProfileId          String?            @map("insights_profile_id") @db.Uuid
-  temporaryPasswordIssued    Boolean            @default(false) @map("temporary_password_issued")
-  failureReason              String?            @map("failure_reason")
-  createdAt                  DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt                  DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  @@index([insightsTenantId, createdAt(sort: Desc)])
-  @@map("insights_user_provisioning_requests")
-}
-
-enum InsightsUserActionType {
-  DEACTIVATE
-  REACTIVATE
-  RESET_PASSWORD
-}
-
-enum InsightsUserActionStatus {
-  PENDING
-  SUCCEEDED
-  FAILED_ERROR
-}
-
-/// Registro de cada ação de gerenciamento (inativar/reativar/resetar senha)
-/// executada sobre um usuário do Connex Insights via CRM — auditoria
-/// append-only, mesmo padrão de `InsightsUserProvisioningRequest`.
-model InsightsUserManagementAction {
-  id                      String                   @id @default(uuid()) @db.Uuid
-  requestedByProfileId    String                   @map("requested_by_profile_id") @db.Uuid
-  insightsUserId          String                   @map("insights_user_id") @db.Uuid
-  actionType              InsightsUserActionType   @map("action_type")
-  status                  InsightsUserActionStatus @default(PENDING)
-  previousStatus          String?                  @map("previous_status")
-  temporaryPasswordIssued Boolean                  @default(false) @map("temporary_password_issued")
-  failureReason           String?                  @map("failure_reason")
-  createdAt               DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt               DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  @@index([insightsUserId, createdAt(sort: Desc)])
-  @@map("insights_user_management_actions")
 }

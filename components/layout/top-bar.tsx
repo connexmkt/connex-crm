@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Bell, Sun, Moon, Menu } from "lucide-react";
+import { Bell, Sun, Moon, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -190,44 +189,21 @@ export function TopBar({ title, onMenuClick, showMenuButton }: TopBarProps) {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* User menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-9 gap-2 px-2">
-              <Avatar className="h-7 w-7">
-                <AvatarImage
-                  src={currentUser?.avatar}
-                  alt={currentUser?.name ?? "Usuário"}
-                />
-                <AvatarFallback className="bg-primary/20 text-xs text-primary">
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
-              <span className="hidden text-sm font-medium md:inline-block">
-                {currentUser?.name.split(" ")[0] ?? "…"}
-              </span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium">
-                  {currentUser?.name ?? "Carregando…"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {currentUser?.email ?? ""}
-                </p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Meu Perfil</DropdownMenuItem>
-            <DropdownMenuItem>Configurações</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
-              Sair
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* User display — sem ação por enquanto */}
+        <div className="flex items-center gap-2 px-2">
+          <Avatar className="h-7 w-7">
+            <AvatarImage
+              src={currentUser?.avatar}
+              alt={currentUser?.name ?? "Usuário"}
+            />
+            <AvatarFallback className="bg-primary/20 text-xs text-primary">
+              {userInitials}
+            </AvatarFallback>
+          </Avatar>
+          <span className="hidden text-sm font-medium md:inline-block">
+            {currentUser?.name.split(" ")[0] ?? "…"}
+          </span>
+        </div>
       </div>
     </header>
   );

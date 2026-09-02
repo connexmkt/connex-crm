@@ -11,8 +11,6 @@ import { Button } from "@/components/ui/button";
 import {
   Home,
   Users,
-  Kanban,
-  Megaphone,
   Calendar,
   BarChart3,
   Settings,
@@ -23,7 +21,13 @@ import {
   LayoutGrid,
 } from "lucide-react";
 
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 import {
   SidebarNavItem,
   hasActiveChild,
@@ -36,16 +40,13 @@ import packageJson from "@/package.json";
 const navItems: SidebarNavItemData[] = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/clientes", label: "Clientes", icon: Users },
-  { href: "/pipeline-comercial", label: "Pipeline Comercial", icon: TrendingUp },
-  { href: "/conteudo", label: "Agenda", icon: Calendar },
   {
-    href: "/relatorios",
-    label: "Relatórios",
-    icon: BarChart3,
-    children: [
-      { href: "/relatorios/instagram", label: "Relatórios de Instagram" },
-    ],
+    href: "/pipeline-comercial",
+    label: "Pipeline Comercial",
+    icon: TrendingUp,
   },
+  { href: "/conteudo", label: "Agenda", icon: Calendar },
+  { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { href: "/configuracoes", label: "Configurações", icon: Settings },
   { href: "/aplicacoes", label: "Aplicações", icon: LayoutGrid },
 ];
@@ -59,8 +60,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  // Guarda apenas os toggles manuais do usuário; a rota ativa continua
-  // determinando o padrão (derivado no render, sem sincronizar via efeito).
   const [manualExpanded, setManualExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -79,7 +78,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   }
 
   function toggleExpanded(item: SidebarNavItemData) {
-    setManualExpanded((prev) => ({ ...prev, [item.href]: !isItemExpanded(item) }));
+    setManualExpanded((prev) => ({
+      ...prev,
+      [item.href]: !isItemExpanded(item),
+    }));
   }
 
   async function handleLogout() {
@@ -173,7 +175,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   </AvatarFallback>
                 </>
               ) : (
-                  <AvatarFallback className="bg-sidebar-skeleton" />
+                <AvatarFallback className="bg-sidebar-skeleton" />
               )}
             </Avatar>
             <AnimatePresence>

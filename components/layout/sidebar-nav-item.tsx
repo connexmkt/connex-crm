@@ -30,11 +30,15 @@ interface SidebarNavItemProps {
   onToggleExpand: () => void;
 }
 
-export function hasActiveChild(item: SidebarNavItemData, pathname: string): boolean {
-  return item.children?.some((child) => pathname.startsWith(child.href)) ?? false;
+export function hasActiveChild(
+  item: SidebarNavItemData,
+  pathname: string,
+): boolean {
+  return (
+    item.children?.some((child) => pathname.startsWith(child.href)) ?? false
+  );
 }
 
-/** Um item da navegação da sidebar, com suporte opcional a submenu (`children`). */
 export function SidebarNavItem({
   item,
   pathname,
@@ -65,7 +69,9 @@ export function SidebarNavItem({
       <Icon
         className={cn(
           "h-5 w-5 shrink-0 transition-colors",
-          isActive ? "text-primary" : "text-sidebar-text group-hover:text-sidebar-text-active",
+          isActive
+            ? "text-primary"
+            : "text-sidebar-text group-hover:text-sidebar-text-active",
         )}
       />
       <AnimatePresence>

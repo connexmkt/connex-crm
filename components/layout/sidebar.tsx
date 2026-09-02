@@ -38,14 +38,7 @@ const navItems: SidebarNavItemData[] = [
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/pipeline-comercial", label: "Pipeline Comercial", icon: TrendingUp },
   { href: "/conteudo", label: "Agenda", icon: Calendar },
-  {
-    href: "/relatorios",
-    label: "Relatórios",
-    icon: BarChart3,
-    children: [
-      { href: "/relatorios/instagram", label: "Relatórios de Instagram" },
-    ],
-  },
+  { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { href: "/configuracoes", label: "Configurações", icon: Settings },
   { href: "/aplicacoes", label: "Aplicações", icon: LayoutGrid },
 ];

@@ -16,8 +16,6 @@ jobs:
       DIRECT_URL: postgresql://ci:ci@localhost:5432/connex_crm_ci
       NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-key
-      SUPABASE_INSIGHTS_URL: https://ci-placeholder-insights.supabase.co
-      SUPABASE_INSIGHTS_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4

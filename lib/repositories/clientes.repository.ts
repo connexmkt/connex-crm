@@ -87,11 +87,6 @@ export type FindManyParams = {
   search?: string
 }
 
-export type ClienteNameRow = {
-  id: string
-  name: string
-}
-
 export type InsertInput = Omit<Client, 'id'> & { responsible: User }
 export type UpdateInput = Partial<
   Omit<Client, 'id' | 'responsible' | 'contractStartDate' | 'contractRenewalDate' | 'internalNotes' | 'sourceReferrer'>
@@ -202,29 +197,5 @@ export const ClientesRepository = {
   async delete(supabase: SupabaseClient, id: string) {
     const { error } = await supabase.from('clientes').delete().eq('id', id)
     if (error) throw error
-  },
-
-  /**
-   * Lista todos os clientes (id + name), sem paginação. Usado como fonte
-   * de verdade para os tenants do Connex Insights — cada cliente
-   * cadastrado no CRM corresponde 1:1 a um tenant remoto.
-   */
-  async findAllNames(supabase: SupabaseClient): Promise<ClienteNameRow[]> {
-    const { data, error } = await supabase
-      .from('clientes')
-      .select('id, name')
-      .order('name', { ascending: true })
-
-    if (error) throw error
-    return data as ClienteNameRow[]
-  },
-
-  async count(supabase: SupabaseClient): Promise<number> {
-    const { count, error } = await supabase
-      .from('clientes')
-      .select('*', { count: 'exact', head: true })
-
-    if (error) throw error
-    return count ?? 0
   },
 }
